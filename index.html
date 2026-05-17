@@ -174,8 +174,8 @@ function checkAuth(){
   if(pw==='¥1103737712'){
     sessionStorage.setItem('pm_auth','ok');
     document.getElementById('auth-overlay').style.display='none';
-    document.getElementById('app-wrapper').classList.add('visible');
-    if(typeof startListener==='function' && !window._listenerStarted){window._listenerStarted=true;startListener();}
+    // moduleスコープのstartListenerをカスタムイベント経由で呼ぶ
+    document.dispatchEvent(new CustomEvent('pm-auth-ok'));
   } else {
     document.getElementById('auth-error').textContent='パスワードが正しくありません';
     document.getElementById('auth-input').value='';
@@ -328,11 +328,18 @@ document.addEventListener('click',e=>{if(!document.getElementById('status-select
 document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))window.closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeStatusMenu();window.closeModal();}});
 let unsubscribeSnapshot=null;
+// startListenerをグローバルに公開（非moduleのcheckAuth()から呼べるようにする）
+window._pmStartListener = startListener;
 // パスワード認証済みの場合はアプリを表示してFirestore接続
 if(sessionStorage.getItem('pm_auth')==='ok'){
   document.getElementById('app-wrapper').classList.add('visible');
   if(!unsubscribeSnapshot)startListener();
 }
+// checkAuth()から認証完了を受け取るイベントリスナー
+document.addEventListener('pm-auth-ok', ()=>{
+  document.getElementById('app-wrapper').classList.add('visible');
+  if(!unsubscribeSnapshot)startListener();
+});
 </script>
 </body>
 </html>
