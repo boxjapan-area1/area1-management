@@ -191,6 +191,7 @@ function checkAuth(){
     <button class="btn btn-json-in"  onclick="importJSON()">🗂 <span>JSONを読み込む</span></button>
     <button class="btn btn-json-out" onclick="exportJSON()">💾 <span>JSONで書き出し</span></button>
     <button class="btn btn-csv"      onclick="exportCSV()">📊 <span>CSVエクスポート</span></button>
+    <button class="btn" id="btn-dedup" onclick="deduplicateProjects()" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;display:none;">🧹 重複削除</button>
     <button class="btn primary"      onclick="openAddModal()">＋ 追加</button>
   </div>
   <input type="file" id="json-file-input" accept=".json" style="display:none;" onchange="handleJSONFile(this)" />
@@ -271,7 +272,7 @@ function checkAuth(){
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 const firebaseConfig = { apiKey:"AIzaSyD2syQa8EhAlJfBtcCxTLsu5az8HO5Pgb8", authDomain:"project-management-6f12b.firebaseapp.com", projectId:"project-management-6f12b", storageBucket:"project-management-6f12b.firebasestorage.app", messagingSenderId:"581150542282", appId:"1:581150542282:web:5f6a71ea00b2228f73a733" };
 const app=initializeApp(firebaseConfig), db=getFirestore(app), auth=getAuth(app), COLL=collection(db,'projects');
 const ALLOWED_EMAILS=['gigoro03@gmail.com'];
@@ -293,9 +294,41 @@ const DEFAULT_PROJECTS=[
 ];
 let projects=[],currentFilter='all',statusTargetId=null,editingModalId=null,sortKey=null,sortDir='asc';
 const STATUS_ORDER={'進行中':0,'未着手':1,'完了':2};
-function startListener(){setSyncBadge('saving','接続中…');const q=query(COLL,orderBy('createdAt','asc'));unsubscribeSnapshot=onSnapshot(q,snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));setSyncBadge('notion','Firebase同期中');render();},err=>{setSyncBadge('error','接続失敗');console.error(err);});}
+function startListener(){setSyncBadge('saving','接続中…');const q=query(COLL,orderBy('createdAt','asc'));unsubscribeSnapshot=onSnapshot(q,snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));setSyncBadge('notion','Firebase同期中');checkDuplicates();render();},err=>{setSyncBadge('error','接続失敗');console.error(err);});}
 // seedDefaults()は廃止（重複追加の原因のため削除）
 async function seedDefaults(){console.warn('seedDefaults: 無効化済み（重複防止）');}
+
+// ── 重複チェック＆削除 ─────────────────────────────────
+function checkDuplicates(){
+  const names={};
+  projects.forEach(p=>{ names[p.name]=(names[p.name]||0)+1; });
+  const hasDup=Object.values(names).some(c=>c>1);
+  const btn=document.getElementById('btn-dedup');
+  if(btn) btn.style.display=hasDup?'':'none';
+}
+async function deduplicateProjects(){
+  const names={};
+  projects.forEach(p=>{ if(!names[p.name]||names[p.name].createdAt.seconds>p.createdAt.seconds) names[p.name]=p; });
+  const keepIds=new Set(Object.values(names).map(p=>p.id));
+  const toDelete=projects.filter(p=>!keepIds.has(p.id));
+  if(toDelete.length===0){alert('重複はありません');return;}
+  if(!confirm(`重複 ${toDelete.length} 件を削除します。よろしいですか？`))return;
+  setSyncBadge('saving','削除中…');
+  let failCount=0;
+  for(const p of toDelete){
+    try {
+      const {deleteDoc:dd, doc:dc}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      await dd(dc(db,'projects',p.id));
+    } catch(e){ failCount++; console.error('削除失敗:',p.name,e); }
+  }
+  if(failCount>0){
+    setSyncBadge('error','削除失敗');
+    alert(`${failCount}件の削除に失敗しました。\nFirebaseコンソールから手動削除が必要な場合があります。\nhttps://console.firebase.google.com`);
+  } else {
+    setSyncBadge('notion','Firebase同期中');
+    document.getElementById('btn-dedup').style.display='none';
+  }
+}
 async function fsUpdate(id,data){setSyncBadge('saving','保存中…');try{await updateDoc(doc(db,'projects',id),data);setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','保存失敗');}}
 async function fsDelete(id){setSyncBadge('saving','削除中…');try{await deleteDoc(doc(db,'projects',id));setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','削除失敗');}}
 async function fsAdd(data){setSyncBadge('saving','保存中…');try{await addDoc(COLL,{...data,createdAt:serverTimestamp()});setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','保存失敗');}}
@@ -331,16 +364,24 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeStatusMenu();w
 let unsubscribeSnapshot=null;
 // startListenerをグローバルに公開（非moduleのcheckAuth()から呼べるようにする）
 window._pmStartListener = startListener;
-// パスワード認証済みの場合はアプリを表示してFirestore接続
-if(sessionStorage.getItem('pm_auth')==='ok'){
+// checkAuth()から認証完了を受け取るイベントリスナー（匿名認証でFirestore書き込みを有効化）
+document.addEventListener('pm-auth-ok', async ()=>{
   document.getElementById('app-wrapper').classList.add('visible');
-  if(!unsubscribeSnapshot)startListener();
-}
-// checkAuth()から認証完了を受け取るイベントリスナー
-document.addEventListener('pm-auth-ok', ()=>{
-  document.getElementById('app-wrapper').classList.add('visible');
+  if(!auth.currentUser){
+    try { await signInAnonymously(auth); } catch(e){ console.warn('anonymous auth failed:', e); }
+  }
   if(!unsubscribeSnapshot)startListener();
 });
+
+// セッション継続時も匿名認証を通す
+if(sessionStorage.getItem('pm_auth')==='ok'){
+  document.getElementById('app-wrapper').classList.add('visible');
+  if(!auth.currentUser){
+    signInAnonymously(auth).catch(e=>console.warn(e)).finally(()=>{ if(!unsubscribeSnapshot)startListener(); });
+  } else {
+    if(!unsubscribeSnapshot)startListener();
+  }
+}
 </script>
 </body>
 </html>
