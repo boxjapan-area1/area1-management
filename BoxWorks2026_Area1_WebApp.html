@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoxWorks 2026 — エリア営業1部 参加者ダッシュボード</title>
+<style>
+  :root{
+    --blue:#0061d5;--blue-dk:#003c84;--blue-lt:#e8f0fe;
+    --osaka:#d35400;--osaka-dk:#922b21;--osaka-lt:#fdebd0;
+    --gray-bg:#f0f2f5;--gray-bd:#dde1e7;--text:#1a1a2e;--text-2:#5f6368;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--gray-bg);color:var(--text);min-height:100vh;}
+
+  .topnav{color:#fff;padding:0 28px;display:flex;align-items:center;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.25);gap:16px;transition:background .3s;}
+  .topnav.ev-tokyo{background:linear-gradient(135deg,var(--blue-dk),var(--blue));}
+  .topnav.ev-osaka{background:linear-gradient(135deg,var(--osaka-dk),var(--osaka));}
+  .topnav .logo{font-size:19px;font-weight:800;letter-spacing:-.5px;}
+  .topnav .logo span{opacity:.7;font-weight:400;font-size:13px;margin-left:8px;}
+  .topnav .date{margin-left:auto;font-size:12px;opacity:.8;}
+
+  .event-switcher{display:flex;background:#fff;border-bottom:2px solid var(--gray-bd);padding:0 28px;position:sticky;top:56px;z-index:190;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  .event-tab{padding:14px 28px;font-size:14px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-2);transition:all .15s;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+  .event-tab.active-tokyo{color:var(--blue);border-bottom-color:var(--blue);}
+  .event-tab.active-osaka{color:var(--osaka);border-bottom-color:var(--osaka);}
+  .ev-badge{font-size:11px;padding:2px 8px;border-radius:12px;font-weight:700;}
+  .ev-badge.tk{background:var(--blue-lt);color:var(--blue);}
+  .ev-badge.os{background:var(--osaka-lt);color:var(--osaka);}
+
+  .container{max-width:1260px;margin:0 auto;padding:24px 20px;}
+
+  .kpi-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+  .kpi{background:#fff;border-radius:10px;padding:14px 20px;flex:1;min-width:110px;box-shadow:0 1px 6px rgba(0,0,0,.07);display:flex;flex-direction:column;align-items:center;transition:transform .15s;}
+  .kpi:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.12);}
+  .kpi .n{font-size:30px;font-weight:800;line-height:1;}
+  .kpi .l{font-size:11px;color:var(--text-2);margin-top:5px;text-align:center;}
+  .ev-tokyo .kpi{border-top:3px solid var(--blue);}
+  .ev-tokyo .kpi:nth-child(1) .n{color:var(--blue);}
+  .ev-tokyo .kpi:nth-child(2) .n{color:var(--blue);}
+  .ev-tokyo .kpi:nth-child(3) .n{color:#1a73e8;}
+  .ev-tokyo .kpi:nth-child(4) .n{color:#137333;}
+  .ev-tokyo .kpi:nth-child(5) .n{color:#b45309;}
+  .ev-osaka .kpi{border-top:3px solid var(--osaka);}
+  .ev-osaka .kpi:nth-child(1) .n{color:var(--osaka);}
+  .ev-osaka .kpi:nth-child(2) .n{color:#00897b;}
+  .ev-osaka .kpi:nth-child(3) .n{color:#1a73e8;}
+
+  .json-toolbar{display:flex;gap:10px;align-items:center;background:#fff;border-radius:10px;padding:12px 18px;margin-bottom:20px;box-shadow:0 1px 6px rgba(0,0,0,.07);flex-wrap:wrap;}
+  .toolbar-label{font-size:12px;font-weight:600;color:var(--text-2);margin-right:4px;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:none;outline:none;transition:all .15s;}
+  .btn-success{background:#137333;color:#fff;}
+  .btn-success:hover{background:#0d5226;}
+  .btn-outline{background:#fff;color:var(--text);border:1.5px solid var(--gray-bd);}
+  .ev-tokyo .btn-outline:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt);}
+  .ev-osaka .btn-outline:hover{border-color:var(--osaka);color:var(--osaka);background:var(--osaka-lt);}
+  .import-status{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:600;display:none;}
+  .import-status.ok{background:#dcfce7;color:#166534;display:inline-flex;}
+  .import-status.err{background:#fee2e2;color:#991b1b;display:inline-flex;}
+  .last-update{margin-left:auto;font-size:11px;color:var(--text-2);}
+
+  .filter-bar{background:#fff;border-radius:10px;padding:14px 20px;margin-bottom:20px;box-shadow:0 1px 6px rgba(0,0,0,.07);display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .filter-bar label{font-size:12px;font-weight:600;color:var(--text-2);}
+  .filter-bar select,.filter-bar input{border:1px solid var(--gray-bd);border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc;color:var(--text);transition:border-color .15s;}
+  .ev-tokyo .filter-bar select:focus,.ev-tokyo .filter-bar input:focus{border-color:var(--blue);}
+  .ev-osaka .filter-bar select:focus,.ev-osaka .filter-bar input:focus{border-color:var(--osaka);}
+  .filter-bar input{width:200px;}
+  .filter-count{margin-left:auto;font-size:12px;color:var(--text-2);padding:4px 12px;border-radius:20px;font-weight:600;}
+  .ev-tokyo .filter-count{background:var(--blue-lt);}
+  .ev-osaka .filter-count{background:var(--osaka-lt);}
+
+  .tab-bar{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+  .tab{display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:24px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all .15s;background:#fff;color:var(--text-2);box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .tab .badge-tab{background:rgba(255,255,255,.25);border-radius:12px;padding:1px 7px;font-size:11px;min-width:20px;text-align:center;}
+  .tab:not(.active) .badge-tab{background:var(--gray-bg);color:var(--text-2);}
+  .tab.active{color:#fff!important;border-color:transparent;}
+  .ev-tokyo .tab:hover{background:var(--blue-lt);color:var(--blue);}
+  .ev-osaka .tab:hover{background:var(--osaka-lt);color:var(--osaka);}
+  .tab-all{background:var(--text);color:#fff!important;}
+  .tab-all:hover{background:#333!important;color:#fff!important;}
+
+  .table-wrap{background:#fff;border-radius:12px;box-shadow:0 1px 8px rgba(0,0,0,.08);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{background:#1a1a2e;color:#fff;padding:12px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap;}
+  thead th:hover{background:#2d2d4a;}
+  thead th .sort-icon{opacity:.5;margin-left:4px;font-size:10px;}
+  thead th.sorted .sort-icon{opacity:1;color:#60a5fa;}
+  tbody tr{border-bottom:1px solid #f0f2f5;transition:background .1s;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:#f8f9fd;}
+  td{padding:12px 16px;vertical-align:middle;}
+  .td-company{font-weight:500;}
+  .td-rep{display:flex;align-items:center;gap:8px;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .td-cnt{text-align:center;}
+  .clickable-count{cursor:pointer;font-weight:700;padding:3px 10px;border-radius:12px;display:inline-block;transition:all .15s;}
+  .ev-tokyo .clickable-count{background:var(--blue-lt);color:var(--blue);}
+  .ev-tokyo .clickable-count:hover{background:var(--blue);color:#fff;}
+  .ev-osaka .clickable-count{background:var(--osaka-lt);color:var(--osaka);}
+  .ev-osaka .clickable-count:hover{background:var(--osaka);color:#fff;}
+
+  /* participation badges */
+  .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;white-space:nowrap;}
+  .badge-both{background:#fef3c7;color:#92400e;}
+  .badge-day0{background:#dbeafe;color:#1e40af;}
+  .badge-day1{background:#dcfce7;color:#166534;}
+
+  /* Account Type badges */
+  .at-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;white-space:nowrap;}
+  .at-ent-adv{background:#1e3a5f;color:#fff;}
+  .at-ent-plus{background:#1565c0;color:#fff;}
+  .at-ent{background:#1976d2;color:#fff;}
+  .at-bus-plus{background:#00695c;color:#fff;}
+  .at-bus{background:#2e7d32;color:#fff;}
+  .at-kusen-mi{background:#b71c1c;color:#fff;}
+  .at-kusen-un{background:#e53935;color:#fff;}
+  .at-target{background:#e65100;color:#fff;}
+  .at-empty{color:var(--text-2);font-size:11px;}
+
+  /* GROUP HEADER ROW */
+  .group-header-row td{
+    background:linear-gradient(90deg,#1a1a2e,#2d2d4a);
+    color:#fff;font-weight:700;font-size:13px;padding:10px 16px;letter-spacing:.3px;
+  }
+  .ev-osaka .group-header-row td{background:linear-gradient(90deg,#7d2d00,#a04000);}
+  .group-rep-name{font-size:14px;font-weight:800;}
+  .group-stat{display:inline-flex;align-items:center;gap:4px;margin-left:16px;font-size:12px;font-weight:600;opacity:.9;background:rgba(255,255,255,.15);border-radius:12px;padding:2px 10px;}
+  .group-stat .stat-icon{font-size:13px;}
+
+  /* modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:16px;max-width:560px;width:90%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;}
+  .modal-header{padding:18px 24px 14px;display:flex;align-items:flex-start;gap:12px;}
+  .ev-tokyo .modal-header{border-bottom:3px solid var(--blue);}
+  .ev-osaka .modal-header{border-bottom:3px solid var(--osaka);}
+  .modal-company{font-size:17px;font-weight:800;flex:1;}
+  .modal-sub{font-size:12px;color:var(--text-2);margin-top:3px;}
+  .modal-close{font-size:22px;cursor:pointer;color:var(--text-2);padding:0 4px;}
+  .modal-body{overflow-y:auto;padding:16px 24px 20px;}
+  .att-card{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:8px;background:#f8f9fd;margin-bottom:8px;}
+  .att-name{font-weight:700;font-size:13px;}
+  .att-meta{font-size:11px;color:var(--text-2);}
+  .att-badges{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;}
+  .empty{text-align:center;padding:48px;color:var(--text-2);font-size:14px;}
+
+  /* ===== PASSWORD AUTH OVERLAY ===== */
+  #auth-overlay{
+    position:fixed;inset:0;z-index:9999;
+    background:linear-gradient(135deg,#003c84 0%,#0061d5 60%,#1a73e8 100%);
+    display:flex;align-items:center;justify-content:center;
+  }
+  #auth-box{
+    background:#fff;border-radius:16px;padding:48px 40px;width:360px;max-width:90vw;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;
+  }
+  #auth-box .auth-logo{font-size:22px;font-weight:800;color:#003c84;margin-bottom:4px;letter-spacing:-.5px;}
+  #auth-box .auth-sub{font-size:12px;color:#5f6368;margin-bottom:32px;}
+  #auth-box .auth-label{font-size:12px;font-weight:600;color:#5f6368;text-align:left;margin-bottom:6px;display:block;}
+  #auth-input{
+    width:100%;padding:12px 16px;border:2px solid #dde1e7;border-radius:8px;
+    font-size:16px;font-family:inherit;outline:none;transition:border-color .15s;
+    text-align:center;letter-spacing:2px;
+  }
+  #auth-input:focus{border-color:#0061d5;}
+  #auth-btn{
+    width:100%;margin-top:16px;padding:13px;background:#0061d5;color:#fff;
+    border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;
+    cursor:pointer;transition:background .15s;
+  }
+  #auth-btn:hover{background:#003c84;}
+  #auth-error{color:#c62828;font-size:12px;margin-top:10px;display:none;font-weight:600;}
+  #app-wrap{display:none;}
+
+</style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <div id="auth-box">
+    <div class="auth-logo">BoxWorks 2026</div>
+    <div class="auth-sub">エリア営業1部 参加者ダッシュボード</div>
+    <label class="auth-label" for="auth-input">パスワード</label>
+    <input type="password" id="auth-input" placeholder="••••••••••••" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')checkAuth()">
+    <button id="auth-btn" onclick="checkAuth()">ログイン</button>
+    <div id="auth-error">パスワードが正しくありません</div>
+  </div>
+</div>
+<div id="app-wrap">
+
+<div class="topnav ev-tokyo" id="topnav">
+  <div class="logo">BoxWorks 2026<span>エリア営業1部 参加者ダッシュボード</span></div>
+  <div class="date">更新: 2026/05/16 02:31</div>
+</div>
+
+<div class="event-switcher">
+  <div class="event-tab active-tokyo" id="tab-tokyo" onclick="switchEvent('tokyo')">
+    🗼 BoxWorks Tokyo 2026 <span class="ev-badge tk">DAY0/DAY1</span>
+  </div>
+  <div class="event-tab" id="tab-osaka" onclick="switchEvent('osaka')">
+    🏯 BoxWorks Osaka 2026 <span class="ev-badge os">大阪</span>
+  </div>
+</div>
+
+<div class="container ev-tokyo" id="main-container">
+  <div class="kpi-bar" id="kpi-bar"></div>
+  <div class="json-toolbar">
+    <span class="toolbar-label">📥 JSON</span>
+    <label class="btn btn-success" style="cursor:pointer;">
+      ⬆ インポート
+      <input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+    </label>
+    <button class="btn btn-outline" onclick="exportJSON()">⬇ エクスポート</button>
+    <button class="btn btn-outline" onclick="exportSchema()">📋 スキーマ</button>
+    <span class="import-status" id="import-status"></span>
+    <span class="last-update" id="last-update">最終更新: 2026/05/16 02:31</span>
+  </div>
+  <div class="filter-bar" id="filter-bar">
+    <label>🔍 担当営業</label>
+    <select id="rep-sel" onchange="applyFilters()"><option value="">全員</option></select>
+    <div id="part-filter-wrap"></div>
+    <label>Account Type</label>
+    <select id="at-sel" onchange="applyFilters()"><option value="">全て</option></select>
+    <label>🏢 会社名</label>
+    <input id="company-input" type="text" placeholder="絞り込み…" oninput="applyFilters()">
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+  <div class="tab-bar" id="tab-bar"></div>
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead id="table-head"></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-inner">
+    <div class="modal-header" id="modal-header">
+      <div>
+        <div class="modal-company" id="modal-company"></div>
+        <div class="modal-sub" id="modal-sub"></div>
+      </div>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+
+  // ===== PASSWORD AUTH =====
+  const BWT_KEY = 'bwt_auth';
+  const BWT_PASS = '¥1103737712';
+  function checkAuth(){
+    const v = document.getElementById('auth-input').value;
+    if(v === BWT_PASS){
+      sessionStorage.setItem(BWT_KEY,'1');
+      document.getElementById('auth-overlay').style.display='none';
+      document.getElementById('app-wrap').style.display='block';
+    } else {
+      document.getElementById('auth-error').style.display='block';
+      document.getElementById('auth-input').value='';
+      document.getElementById('auth-input').focus();
+    }
+  }
+  // Check on load
+  if(sessionStorage.getItem(BWT_KEY)==='1'){
+    document.getElementById('auth-overlay').style.display='none';
+    document.getElementById('app-wrap').style.display='block';
+  }
+  // =========================
+const EVENTS = {
+  tokyo: { raw: [{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"TOWA株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":4,"method":"社名照合","attendees":[{"name":"佐久間 陽","title":"課長・マネージャークラス","job_title":"課長代理","dept":"情報システム部","day0":true,"day1":false},{"name":"平根 知弥","title":"一般社員","job_title":"一般職","dept":"情報システム部","day0":true,"day1":false},{"name":"前田 悠斗","title":"一般社員","job_title":"一般","dept":"情報システム部","day0":true,"day1":true},{"name":"矢倉 優祐","title":"一般社員","job_title":"なし","dept":"情報システム部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"ケイミュー　株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"富田 和雄","title":"部長・グループ長クラス","job_title":"部長","dept":"ＩＴ推進部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"ケイミュー株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"上間 一平","title":"一般社員","job_title":"なし","dept":"IT推進部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"タツモ株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"藤堂 和弘","title":"課長・マネージャークラス","job_title":"参事","dept":"事業本部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"トヨタ自動車","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"田中 学","title":"課長・マネージャークラス","job_title":"主幹","dept":"先進データサイエンス統括部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"トヨタ自動車株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":6,"method":"社名照合","attendees":[{"name":"内野 孝哉","title":"課長・マネージャークラス","job_title":"グループマネージャー","dept":"エンジニアリング情報管理部","day0":true,"day1":true},{"name":"太田 哲也","title":"リーダークラス","job_title":"SP","dept":"デジタル情報通信本部","day0":true,"day1":false},{"name":"安藤 由真","title":"その他","job_title":"BOX担当","dept":"販売基盤開発部","day0":true,"day1":true},{"name":"横木 崇人","title":"課長・マネージャークラス","job_title":"グループマネージャー","dept":"販売基盤開発部","day0":true,"day1":true},{"name":"Hirakawa Takeshi","title":"一般社員","job_title":"無し","dept":"開発製造IT推進部","day0":true,"day1":false},{"name":"藤野 哲","title":"課長・マネージャークラス","job_title":"主幹","dept":"デジタル変革推進部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"リョービ株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"川本 雅信","title":"課長・マネージャークラス","job_title":"システム開発担当課長","dept":"ダイカスト金型本部設計部","day0":true,"day1":false}],"accountType":"かわ Target"},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"株式会社シーイーシー","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"長戸 八郎","title":"一般社員","job_title":"インフラアーキテクト","dept":"CyberNEXTビジネス部","day0":true,"day1":true},{"name":"前地 崇","title":"課長・マネージャークラス","job_title":"グループマネージャー","dept":"ソリューション戦略室","day0":false,"day1":true}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"株式会社西武ホールディングス","day0":true,"day1":true,"participation":"DAY0+DAY1","count":9,"method":"社名照合","attendees":[{"name":"山崎 公之","title":"経営者・役員","job_title":"取締役上席執行役員情報システム部長","dept":"情報システム部門","day0":false,"day1":true},{"name":"渡邊 琢","title":"その他","job_title":"課長補佐","dept":"情報システム部","day0":false,"day1":true},{"name":"三島 和也","title":"一般社員","job_title":"主任","dept":"情報システム部","day0":true,"day1":false},{"name":"持田 芳彦","title":"課長・マネージャークラス","job_title":"課長","dept":"情報システム部","day0":true,"day1":false},{"name":"田邉 久嗣","title":"リーダークラス","job_title":"課長補佐","dept":"情報システム部","day0":false,"day1":true},{"name":"福島 進也","title":"一般社員","job_title":"主任","dept":"情報システム部","day0":true,"day1":true},{"name":"上町 祥太","title":"一般社員","job_title":"勤務","dept":"情報システム部","day0":false,"day1":true},{"name":"笠原 淑行","title":"一般社員","job_title":"主任","dept":"情報システム部","day0":true,"day1":false},{"name":"山崎 公之","title":"経営者・役員","job_title":"取締役上席執行役員情報システム部長","dept":"情報システム部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"株式会社髙松コンストラクショングループ","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"國峯 友彦","title":"課長・マネージャークラス","job_title":"課長","dept":"グループIT戦略部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"西武ホールディングス","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"田口 寛也","title":"一般社員","job_title":"主任","dept":"情報システム部","day0":true,"day1":true},{"name":"小野 和彦","title":"リーダークラス","job_title":"課長補佐","dept":"情報システム部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"阪神高速技研株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":2,"method":"社名照合","attendees":[{"name":"岡部 壱星","title":"一般社員","job_title":"なし","dept":"システム事業本部","day0":true,"day1":false},{"name":"中村 凜","title":"その他","job_title":"ない","dept":"システム事業本部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"I-PEX株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"武藤 凜夏","title":"一般社員","job_title":"なし","dept":"情報システム開発部","day0":true,"day1":true},{"name":"井上 精史","title":"課長・マネージャークラス","job_title":"課長","dept":"情報システム開発部IT推進課","day0":true,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"タカラスタンダード株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"森山 勇一","title":"リーダークラス","job_title":"リーダー","dept":"IT戦略部","day0":false,"day1":true},{"name":"小林 憲司","title":"部長・グループ長クラス","job_title":"部長","dept":"IT戦略部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"パーソルホールディングス","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"加瀬 貴之","title":"その他","job_title":"シニアコンサルタント","dept":"プロジェクトBITA部","day0":false,"day1":true},{"name":"荒木 麻有実","title":"一般社員","job_title":"リードコンサルタント","dept":"グループワークスタイル本部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"パーソルホールディングス株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":6,"method":"社名照合","attendees":[{"name":"松田 剛","title":"課長・マネージャークラス","job_title":"室長","dept":"グループWorkstyle本部","day0":true,"day1":true},{"name":"Tateishi Mizuki","title":"一般社員","job_title":"コンサルタント","dept":"IT部門","day0":true,"day1":false},{"name":"見留 和也","title":"リーダークラス","job_title":"プロダクトオーナー","dept":"グループWork Style本部 ワークスタイルテクノロジー部 ワークスタイルEX室","day0":true,"day1":true},{"name":"梶原 佑紀","title":"一般社員","job_title":"なし","dept":"ワークスタイルテクノロジー部","day0":true,"day1":true},{"name":"山田 瑞貴","title":"一般社員","job_title":"メンバー","dept":"グループワークスタイル本部","day0":true,"day1":true},{"name":"岡田 将幸","title":"部長・グループ長クラス","job_title":"本部長","dept":"グループAI本部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"ワタキューセイモア株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"佐々木 菜絵","title":"一般社員","job_title":"なし","dept":"IT改革本部　IT開発部　インフラ課","day0":true,"day1":false},{"name":"湯場﨑 和","title":"一般社員","job_title":"なし","dept":"IT改革本部","day0":false,"day1":true}],"accountType":"Business Plus"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"㈱ゼンリン","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"天野 剛志","title":"部長・グループ長クラス","job_title":"ERP担当","dept":"システム開発本部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"有限会社村田製作所","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"谷 梓美","title":"リーダークラス","job_title":"取締役副社長","dept":"営業部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"東洋紡株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":3,"method":"社名照合","attendees":[{"name":"山田 祐二","title":"一般社員","job_title":"係長","dept":"敦賀事業所　環境安全室","day0":true,"day1":false},{"name":"川嶋 洋介","title":"リーダークラス","job_title":"主席部員","dept":"TX・業務革新総括部","day0":true,"day1":false},{"name":"糟谷 聡","title":"一般社員","job_title":"なし","dept":"TX","day0":true,"day1":true}],"accountType":"Enterprise Advanced"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"株式会社　金沢村田製作所","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"藤田 聡","title":"リーダークラス","job_title":"シニアエンジニア","dept":"分析センタ","day0":true,"day1":false}],"accountType":""},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"株式会社コーセーホールディングス","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"緒方 久朗","title":"部長・グループ長クラス","job_title":"統括グループ長","dept":"IT統括グループ","day0":true,"day1":true}],"accountType":""},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"株式会社セイノー情報サービス","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"藤堂 進","title":"経営者・役員","job_title":"執行役員","dept":"第一営業部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"株式会社ゼンリン","day0":true,"day1":true,"participation":"DAY0+DAY1","count":3,"method":"社名照合","attendees":[{"name":"中西 巧","title":"課長・マネージャークラス","job_title":"主幹","dept":"生産システム開発一部","day0":true,"day1":false},{"name":"飯銅 英樹","title":"経営者・役員","job_title":"本部長","dept":"システム開発本部","day0":false,"day1":true},{"name":"久保田 耕平","title":"部長・グループ長クラス","job_title":"部長","dept":"システム開発本部情報システム開発部","day0":false,"day1":true}],"accountType":"苦戦【未商談】"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"積水ハウス株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"太田 昌幸","title":"課長・マネージャークラス","job_title":"スペシャリスト","dept":"技術業務部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"鴻池運輸株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":5,"method":"社名照合","attendees":[{"name":"冨澤 俊一","title":"部長・グループ長クラス","job_title":"部長","dept":"ICT推進本部　ICT企画部","day0":true,"day1":true},{"name":"髙山 理絵","title":"課長・マネージャークラス","job_title":"担当課長","dept":"ICT企画部","day0":true,"day1":true},{"name":"吉田 美文","title":"リーダークラス","job_title":"係長","dept":"ICT推進本部","day0":true,"day1":true},{"name":"戸松 聡","title":"課長・マネージャークラス","job_title":"担当課長","dept":"ICTテクノロジー推進部","day0":false,"day1":true},{"name":"石川 信一","title":"一般社員","job_title":"係長","dept":"ICTテクノロジー推進部","day0":false,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Moriki Yuta","owner_jp":"森木 勇太","company":"アイホン株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"持田 貴生","title":"一般社員","job_title":"なし","dept":"情報システム部","day0":true,"day1":false}],"accountType":"Business Plus"},{"owner_en":"Moriki Yuta","owner_jp":"森木 勇太","company":"エスペック株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"眞弓 佳士","title":"課長・マネージャークラス","job_title":"マネージャー","dept":"IT戦略部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Moriki Yuta","owner_jp":"森木 勇太","company":"シーピー化成","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"山口 遼","title":"リーダークラス","job_title":"チーフ","dept":"マーケティング部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Moriki Yuta","owner_jp":"森木 勇太","company":"フジッコ株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":2,"method":"社名照合","attendees":[{"name":"福原 鮎美","title":"一般社員","job_title":"社員","dept":"デジタル戦略部","day0":true,"day1":false},{"name":"多田 佳澄","title":"一般社員","job_title":"なし","dept":"デジタル戦略部","day0":true,"day1":false}],"accountType":"Enterprise"},{"owner_en":"Moriki Yuta","owner_jp":"森木 勇太","company":"三井不動産レジデンシャルリース株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"宮嵜 大","title":"部長・グループ長クラス","job_title":"室長","dept":"法人業務室","day0":true,"day1":false},{"name":"青木 珠恵","title":"一般社員","job_title":"社員","dept":"情報システム部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Moriki Yuta","owner_jp":"森木 勇太","company":"名工建設株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"今野 博","title":"一般社員","job_title":"なし","dept":"建築本部","day0":true,"day1":false}],"accountType":"Enterprise"},{"owner_en":"Moriki Yuta","owner_jp":"森木 勇太","company":"株式会社ニコン","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"福田 樹央","title":"一般社員","job_title":"プロジェクトリーダー","dept":"ITソリューション本部","day0":true,"day1":true},{"name":"林 慎一郎","title":"課長・マネージャークラス","job_title":"課長","dept":"法務部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"SGシステム株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"駒崎 貴士","title":"課長・マネージャークラス","job_title":"係長","dept":"DX推進2部","day0":true,"day1":false}],"accountType":"Business Plus"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"オムロン株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"伊香 智広","title":"課長・マネージャークラス","job_title":"課長","dept":"グローバルビジネスプロセス＆IT革新本部　ITプラットフォーム革新センタ","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"ヤンマーパワーテクノロジー株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":3,"method":"社名照合","attendees":[{"name":"田中 真紀","title":"一般社員","job_title":"なし","dept":"技術生産本部開発部開発マネジメント部","day0":true,"day1":true},{"name":"杉本 由美子","title":"一般社員","job_title":"なし","dept":"技術生産本部開発部開発マネジメント部","day0":true,"day1":true},{"name":"上里 晃一","title":"課長・マネージャークラス","job_title":"主幹","dept":"技術生産本部 開発部","day0":true,"day1":true}],"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"㈱神戸製鋼所","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"長峯 勲","title":"課長・マネージャークラス","job_title":"課長","dept":"技術開発本部　企画管理部","day0":false,"day1":true}],"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"三浦工業株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"炭蔵 久和","title":"課長・マネージャークラス","job_title":"部次長","dept":"舶用機器電機技術部","day0":true,"day1":false}],"accountType":"Enterprise"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"佐川急便(株)","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"磯部 龍毅","title":"一般社員","job_title":"主任","dept":"営業部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"日亜化学工業","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"吉岡 知生","title":"リーダークラス","job_title":"主任","dept":"システム開発本部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"村田機械株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"渡部 昇","title":"課長・マネージャークラス","job_title":"主任部員","dept":"研究開発本部","day0":false,"day1":true}],"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"株式会社 神戸製鋼所","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"平田 正則","title":"一般社員","job_title":"無","dept":"技術開発本部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"株式会社カネカ","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"稲川 博敬","title":"一般社員","job_title":"Assistant Manager","dept":"Digital Solutions Center","day0":true,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"株式会社日本触媒","day0":true,"day1":true,"participation":"DAY0+DAY1","count":4,"method":"社名照合","attendees":[{"name":"高岩 聖悟","title":"課長・マネージャークラス","job_title":"主任","dept":"ＩＴ統括部","day0":true,"day1":true},{"name":"野口 むつみ","title":"一般社員","job_title":"なし","dept":"DX水sん本部IT統括部","day0":true,"day1":true},{"name":"羽栗 雄平","title":"一般社員","job_title":"一般社員","dept":"IT統括部","day0":true,"day1":true},{"name":"塩田 和久","title":"部長・グループ長クラス","job_title":"部長","dept":"IT統括部","day0":false,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"株式会社神戸製鋼所","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"今井 健太","title":"一般社員","job_title":"一般社員","dept":"技術開発本部 企画管理部","day0":true,"day1":false},{"name":"渡邊 拓人","title":"課長・マネージャークラス","job_title":"課長","dept":"IT企画部　DX戦略プロジェクトグループ","day0":false,"day1":true}],"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"青山商事株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":3,"method":"社名照合","attendees":[{"name":"伊藤 瑠香","title":"一般社員","job_title":"サブマネージャー","dept":"DX推進部","day0":false,"day1":true},{"name":"東 史織","title":"課長・マネージャークラス","job_title":"マネジャー","dept":"DX推進部","day0":true,"day1":false},{"name":"渋谷 祐太","title":"一般社員","job_title":"マネジャー","dept":"DX","day0":true,"day1":false}],"accountType":""},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"TOTO株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"宮本 奏","title":"一般社員","job_title":"なし","dept":"トイレ空間品質管理G","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"オプテージ","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"尾崎 賢大","title":"一般社員","job_title":"なし","dept":"コーポレートITシステム部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"カナデビア株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"山本 恭輔","title":"リーダークラス","job_title":"主任","dept":"ICT推進本部 情報基盤管理部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"カナデビア（株）","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"石橋 賢二","title":"一般社員","job_title":"担当","dept":"情報基盤管理部","day0":false,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"中電プラント株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"桧垣 充紀","title":"課長・マネージャークラス","job_title":"マネージャー","dept":"DX推進部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"株式会社かんでんエンジニアリング","day0":true,"day1":false,"participation":"DAY0のみ","count":2,"method":"社名照合","attendees":[{"name":"森 みどり","title":"一般社員","job_title":"なし","dept":"ＩＴソリューション部","day0":true,"day1":false},{"name":"徳田 克則","title":"課長・マネージャークラス","job_title":"マネジャー","dept":"ITソリューション部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"株式会社オプテージ","day0":true,"day1":true,"participation":"DAY0+DAY1","count":5,"method":"社名照合","attendees":[{"name":"西田 政幸","title":"経営者・役員","job_title":"執行役員副本部長","dept":"ソリューション部門","day0":false,"day1":true},{"name":"伊藤 宏斗","title":"一般社員","job_title":"なし","dept":"ICTソリューション部　ICTプリセールスチーム","day0":true,"day1":true},{"name":"西本 匠海","title":"一般社員","job_title":"-","dept":"ICTソリューション部","day0":true,"day1":true},{"name":"矢野 宏明","title":"部長・グループ長クラス","job_title":"部長","dept":"電力ITソリューション部","day0":true,"day1":false},{"name":"山本 龍昇","title":"リーダークラス","job_title":"サブマネージャー","dept":"コーポレートITシステム部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"株式会社キーエンス","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"平松 亮磨","title":"リーダークラス","job_title":"なし","dept":"販売促進","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"株式会社クラレ","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"高原 泰弘","title":"部長・グループ長クラス","job_title":"グループリーダー","dept":"DX-IT本部　機密情報管理グループ","day0":false,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"株式会社関電システムズ","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"稲葉 隆","title":"部長・グループ長クラス","job_title":"部長","dept":"ソリューション本部需給システム部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"福山通運株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"富田 剛","title":"課長・マネージャークラス","job_title":"課長","dept":"情報システム部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","company":"関電システムズ","day0":true,"day1":false,"participation":"DAY0のみ","count":2,"method":"社名照合","attendees":[{"name":"伊藤 智子","title":"一般社員","job_title":"なし","dept":"基盤システム部","day0":true,"day1":false},{"name":"谷口 範和","title":"リーダークラス","job_title":"アシスタントマネージャー","dept":"総務部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"NTTデータ","day0":true,"day1":true,"participation":"DAY0+DAY1","count":7,"method":"社名照合","attendees":[{"name":"せい よう","title":"リーダークラス","job_title":"主任","dept":"コンサルティング事業部","day0":false,"day1":true},{"name":"田中 弘史","title":"課長・マネージャークラス","job_title":"シニアスペシャリスト","dept":"業務統括本部","day0":true,"day1":false},{"name":"KAWANAMI KOHEI","title":"一般社員","job_title":"主任","dept":"テクノロジーコンサルティング事業本部","day0":true,"day1":true},{"name":"金本 康之","title":"課長・マネージャークラス","job_title":"課長","dept":"インダストリセールス事業部","day0":true,"day1":true},{"name":"大坪 五郎","title":"その他","job_title":"協働者","dept":"TCS Tangity","day0":false,"day1":true},{"name":"田中 久美子","title":"その他","job_title":"なし","dept":"TC本テクノロジーコンサルティング事業部","day0":true,"day1":false},{"name":"松岡 正晴","title":"課長・マネージャークラス","job_title":"シニアスペシャリスト","dept":"ソリューション事業本部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"サカタインクス株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":3,"method":"社名照合","attendees":[{"name":"小川 浩二","title":"部長・グループ長クラス","job_title":"情報システム部長","dept":"情報システム部","day0":true,"day1":true},{"name":"岡田 純子","title":"課長・マネージャークラス","job_title":"スペシャリスト","dept":"情報システム部","day0":true,"day1":true},{"name":"八木 杏樹","title":"一般社員","job_title":"一般社員","dept":"情報システム部","day0":true,"day1":true}],"accountType":"Business Plus"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"マックス株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"二階堂 裕美","title":"一般社員","job_title":"主任","dept":"デジタルイノベーション統括部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"メタルテック株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"伊藤 久美","title":"一般社員","job_title":"なし","dept":"総務部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"井村屋グループ株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":3,"method":"社名照合","attendees":[{"name":"赤塚 昌平","title":"リーダークラス","job_title":"副主任","dept":"デジタル戦略室","day0":true,"day1":false},{"name":"山崎 光一","title":"課長・マネージャークラス","job_title":"課長","dept":"デジタル戦略室","day0":true,"day1":false},{"name":"辻 雅隆","title":"課長・マネージャークラス","job_title":"課長","dept":"デジタル戦略室","day0":true,"day1":false}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"井村屋グループ（株）","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"浅野 久美","title":"一般社員","job_title":"主任","dept":"デジタル戦略室","day0":true,"day1":false}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"名鉄観光サービス株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":2,"method":"社名照合","attendees":[{"name":"土本 健太","title":"リーダークラス","job_title":"課長代理","dept":"経営戦略部","day0":false,"day1":true},{"name":"松林 宏樹","title":"部長・グループ長クラス","job_title":"部長","dept":"経営戦略部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"帝人フロンティア株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"渡辺　哲雄 DX推進室","title":"部長・グループ長クラス","job_title":"部長","dept":"経営企画本部DX推進部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"平田機工","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"高木 由美","title":"その他","job_title":"なし","dept":"情報システム部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"平田機工株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":3,"method":"社名照合","attendees":[{"name":"大脇 倫子","title":"一般社員","job_title":"一般","dept":"情報システム部","day0":true,"day1":false},{"name":"日野 智広","title":"部長・グループ長クラス","job_title":"担当部長","dept":"情報システム部","day0":true,"day1":false},{"name":"元村 雅博","title":"一般社員","job_title":"一般","dept":"情報システム部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"広島アルミニウム工業株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":3,"method":"社名照合","attendees":[{"name":"沖野 達則","title":"一般社員","job_title":"主補","dept":"情報管理部","day0":true,"day1":true},{"name":"村上 照明","title":"一般社員","job_title":"一般","dept":"情報管理部","day0":false,"day1":true},{"name":"平松 実佳","title":"一般社員","job_title":"一般社員","dept":"情報管理部","day0":true,"day1":false}],"accountType":"Business Plus"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"株式会社NTTデータ","day0":true,"day1":true,"participation":"DAY0+DAY1","count":8,"method":"社名照合","attendees":[{"name":"松本 歩栞","title":"一般社員","job_title":"主任","dept":"ソリューション事業本部","day0":true,"day1":true},{"name":"遠藤 瑞希","title":"一般社員","job_title":"勤務","dept":"テクノロジーコンサルティング事業本部インダストリセールス事業部","day0":true,"day1":true},{"name":"渡邊 明寿花","title":"一般社員","job_title":"主任","dept":"インダストリセールス事業部","day0":true,"day1":false},{"name":"MURATA SACHIKO","title":"リーダークラス","job_title":"課長代理","dept":"IS事業部","day0":true,"day1":false},{"name":"福田 渓介","title":"リーダークラス","job_title":"課長代理","dept":"TCS","day0":true,"day1":false},{"name":"児玉 裕美","title":"リーダークラス","job_title":"課長代理","dept":"第四公共事業本部","day0":true,"day1":false},{"name":"住友 道彦","title":"リーダークラス","job_title":"課長代理","dept":"TC&S事業本部　インダストリセールス事業部","day0":true,"day1":true},{"name":"佐々木 慎介","title":"部長・グループ長クラス","job_title":"部長","dept":"BPS事業部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"株式会社サイバーリンクス","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"村岡 茂紀","title":"課長・マネージャークラス","job_title":"課長","dept":"公共営業課","day0":true,"day1":true}],"accountType":"さき Target"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","company":"株式会社フォレストホールディングス","day0":true,"day1":true,"participation":"DAY0+DAY1","count":4,"method":"社名照合","attendees":[{"name":"寺田 裕治","title":"部長・グループ長クラス","job_title":"部長","dept":"法務部","day0":true,"day1":false},{"name":"米野 能章","title":"経営者・役員","job_title":"執行役員部長","dept":"DX戦略部","day0":false,"day1":true},{"name":"岡部 充","title":"課長・マネージャークラス","job_title":"課長","dept":"DX戦略部コアシステム管理課","day0":false,"day1":true},{"name":"阿部 香織","title":"一般社員","job_title":"主任","dept":"DX戦略部","day0":true,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"NECネッツエスアイ株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社員紹介","attendees":[{"name":"高島 春樹","title":"課長・マネージャークラス","job_title":"課長","dept":"関西パブリックソリューション営業本部　第二ソリューション営業部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"NTTドコモビジネスソリューションズ株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":7,"method":"社名照合","attendees":[{"name":"Tahara Satoshi","title":"課長・マネージャークラス","job_title":"支店長","dept":"ソリューション営業部　新潟支店","day0":false,"day1":true},{"name":"赤塚 明香","title":"一般社員","job_title":"なし","dept":"ソリューション営業部","day0":false,"day1":true},{"name":"山本 浩平","title":"一般社員","job_title":"無","dept":"CXコンサルティング部門","day0":true,"day1":false},{"name":"星野 健一","title":"リーダークラス","job_title":"主査","dept":"ソリューション営業部 DXコンサルティング部門","day0":true,"day1":true},{"name":"髙橋 和","title":"一般社員","job_title":"一般社員","dept":"中国支社ソリューション営業部門","day0":true,"day1":true},{"name":"玉川 哲男","title":"リーダークラス","job_title":"主査","dept":"第一営業推進部門","day0":false,"day1":true},{"name":"菅 敏幸","title":"リーダークラス","job_title":"主任","dept":"第一営業推進部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"NTT西日本株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"服部 喬介","title":"一般社員","job_title":"社員","dept":"エンタープライズビジネス営業部","day0":true,"day1":true}],"accountType":"苦戦【未商談】"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"SBIホールディングス","day0":true,"day1":false,"participation":"DAY0のみ","count":2,"method":"社名照合","attendees":[{"name":"朝倉 千百合","title":"その他","job_title":"なし","dept":"IT統括部","day0":true,"day1":false},{"name":"片倉 理紗","title":"一般社員","job_title":"アシスタントマネージャー","dept":"IT","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"SBIホールディングス株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"庄野 美智留","title":"一般社員","job_title":"アシスタントマネージャー","dept":"IT統括部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"オージス総研","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"吉田 千夏","title":"リーダークラス","job_title":"リーダー","dept":"情報システム部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"ジェイアール東海情報システム株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":3,"method":"社名照合","attendees":[{"name":"金子 尚弥","title":"一般社員","job_title":"社員","dept":"基盤システム部","day0":true,"day1":true},{"name":"中川 卓也","title":"課長・マネージャークラス","job_title":"マネージャ","dept":"名古屋基幹システム本部基盤システム部","day0":false,"day1":true},{"name":"菅田 貞治","title":"一般社員","job_title":"主任","dept":"基盤システム部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"テルウェル東日本株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"丹羽 武","title":"課長・マネージャークラス","job_title":"担当課長","dept":"経営企画部システム推進室","day0":false,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"パナソニック インフォメーションシステムズ株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"下田 拓明","title":"一般社員","job_title":"主務","dept":"営業推進統括部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"パナソニック コネクト株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"川又 宏","title":"部長・グループ長クラス","job_title":"シニアエキスパート","dept":"IT・デジタル推進本部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"パナソニックインフォメーションシステムズ株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"山田 勉","title":"一般社員","job_title":"なし","dept":"経営企画部","day0":false,"day1":true},{"name":"山田 勉","title":"一般社員","job_title":"なし","dept":"経営企画部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"パナソニックインフォメーションズ","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"福永 憲一","title":"部長・グループ長クラス","job_title":"シニアエキスパート","dept":"ICTソリューション本部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"パナソニックコネクト株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"岡崎 博之","title":"その他","job_title":"nan","dept":"現場ソリューションカンパニー","day0":true,"day1":true},{"name":"南山 慶太","title":"一般社員","job_title":"なし","dept":"サービスデザイン部　テーマ＆インフラ推進課　インフラ推進係","day0":false,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"パナソニックホームズ","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社員紹介","attendees":[{"name":"大砂 由紀子","title":"リーダークラス","job_title":"主幹","dept":"情報企画部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"パナソニックホームズ株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社員紹介","attendees":[{"name":"中山 千夏","title":"一般社員","job_title":"なし","dept":"情報企画部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"ベニックソリューション株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"西脇 純","title":"一般社員","job_title":"なし","dept":"デジタル基盤本部 基盤サービス設計部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"ベニックソリューション（株）","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"高水 一平","title":"その他","job_title":"-","dept":"デジタル基盤本部 基盤サービス設計部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"中部テレコミュニケーション株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":2,"method":"社名照合","attendees":[{"name":"足立 智彦","title":"リーダークラス","job_title":"課長補佐","dept":"DXセキュリティ営業部","day0":true,"day1":false},{"name":"川﨑 拓実","title":"一般社員","job_title":"主任","dept":"営業","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"中部電力株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"太田 慎平","title":"その他","job_title":"技術派遣","dept":"デジタル変革推進本部　ＩＴ・セキュリティ統括部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"九州電力株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":5,"method":"社名照合","attendees":[{"name":"坂下 和也","title":"部長・グループ長クラス","job_title":"グループ長","dept":"情報通信本部","day0":false,"day1":true},{"name":"鍋島 正","title":"一般社員","job_title":"主任","dept":"情報通信本部基盤構造改革グループ","day0":true,"day1":true},{"name":"馬場 雄三","title":"一般社員","job_title":"主任","dept":"情報通信本部","day0":false,"day1":true},{"name":"山本 梨菜","title":"一般社員","job_title":"担当","dept":"情報通信","day0":false,"day1":true},{"name":"築地原 護","title":"課長・マネージャークラス","job_title":"副長","dept":"情報通信本部　基盤構造改革グループ","day0":false,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"京セラドキュメントソリューションズジャパン株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":14,"method":"社名照合","attendees":[{"name":"藤原 恵陽","title":"部長・グループ長クラス","job_title":"部長","dept":"営業本部 特販統括部 パッケージコンサル推進部","day0":true,"day1":true},{"name":"藤山 慎介","title":"課長・マネージャークラス","job_title":"課長","dept":"首都圏公共営業課","day0":true,"day1":false},{"name":"奥苑 健太郎","title":"課長・マネージャークラス","job_title":"課長","dept":"ICTソリューション統括部","day0":true,"day1":true},{"name":"小泉 淳也","title":"一般社員","job_title":"一般","dept":"パッケージコンサル推進部","day0":true,"day1":true},{"name":"正木 洋平","title":"課長・マネージャークラス","job_title":"課長","dept":"東日本EP営業1課","day0":false,"day1":true},{"name":"中條 裕士","title":"一般社員","job_title":"一般","dept":"ICT営業部","day0":true,"day1":true},{"name":"奥苑 健太郎","title":"課長・マネージャークラス","job_title":"課長","dept":"ICTソリューション統括部","day0":true,"day1":true},{"name":"大崇 友田","title":"一般社員","job_title":"一般社員","dept":"ドキュメントソリューション推進部","day0":true,"day1":true},{"name":"中山 雄介","title":"リーダークラス","job_title":"一般","dept":"営業","day0":true,"day1":true},{"name":"松永 伊織","title":"一般社員","job_title":"メンバー","dept":"特販営業課","day0":false,"day1":true},{"name":"友安 健志郎","title":"課長・マネージャークラス","job_title":"課責任者","dept":"DS推進課","day0":true,"day1":true},{"name":"谷口 秀行","title":"課長・マネージャークラス","job_title":"課長","dept":"ICT営業部　ICT営業課","day0":true,"day1":true},{"name":"栗林 弘貴","title":"一般社員","job_title":"一般","dept":"ICT営業部　ICT営業課","day0":true,"day1":true},{"name":"三浦 徹也","title":"課長・マネージャークラス","job_title":"課長","dept":"関東公共営業課","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"京セラドキュメントソリューションズ株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"木田 保彦","title":"部長・グループ長クラス","job_title":"部長","dept":"S&CS統括部","day0":true,"day1":false}],"accountType":"苦戦【未商談】"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"京セラドキュメントソリュージョンズジャパン株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"藤井 幹久","title":"一般社員","job_title":"メンバー","dept":"システムエンジニアリング部","day0":false,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"京セラ株式会社","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"淵上 剛好","title":"一般社員","job_title":"なし","dept":"ICT戦略課","day0":false,"day1":true}],"accountType":"苦戦【未商談】"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"住友電工情報システム","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"川嶋 藍","title":"一般社員","job_title":"一般社員","dept":"ビジネスソリューション事業本部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"大阪ガス","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社員紹介","attendees":[{"name":"田中 翔馬","title":"リーダークラス","job_title":"副課長","dept":"DX企画部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"川崎重工業","day0":true,"day1":false,"participation":"DAY0のみ","count":2,"method":"社名照合","attendees":[{"name":"日隈 克敏","title":"課長・マネージャークラス","job_title":"基幹職","dept":"DX戦略本部","day0":true,"day1":false},{"name":"志村 拡俊","title":"リーダークラス","job_title":"基幹職","dept":"DX戦略本部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"川崎重工業株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":5,"method":"社名照合","attendees":[{"name":"石渡 久雄","title":"一般社員","job_title":"デザイナー","dept":"航空宇宙システムカンパニー","day0":true,"day1":false},{"name":"澤井 達明","title":"リーダークラス","job_title":"基幹職","dept":"技術開発本部","day0":true,"day1":false},{"name":"大河原 秀暢","title":"課長・マネージャークラス","job_title":"課長","dept":"本社DX戦略本部","day0":true,"day1":true},{"name":"桂川 敬史","title":"課長・マネージャークラス","job_title":"副部長","dept":"DX戦略本部","day0":true,"day1":false},{"name":"西岡 航","title":"一般社員","job_title":"一般職","dept":"DX戦略本部コーポレートデジタル総括部グループITインフラ部インフラ企画課","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"東日本旅客鉄道株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":7,"method":"社名照合","attendees":[{"name":"西塚 悦久","title":"リーダークラス","job_title":"チーフ","dept":"本社イノベーション戦略本部","day0":true,"day1":true},{"name":"中島 雄一","title":"課長・マネージャークラス","job_title":"総括マネージャ","dept":"イノベーション戦略本部","day0":false,"day1":true},{"name":"藤澤 匡章","title":"部長・グループ長クラス","job_title":"ユニットリーダー","dept":"イノベーション戦略本部システムマネジメントユニット","day0":false,"day1":true},{"name":"小島 加愛","title":"一般社員","job_title":"副長","dept":"イノベーション戦略本部","day0":true,"day1":true},{"name":"玉城 駿介","title":"一般社員","job_title":"主任","dept":"設備部門","day0":true,"day1":false},{"name":"須田 和哉","title":"一般社員","job_title":"主任","dept":"秋田支社　設備部","day0":true,"day1":false},{"name":"山下 真樹","title":"課長・マネージャークラス","job_title":"副所長","dept":"新宿統括センター","day0":true,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"東海旅客鉄道株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"和多 雷志郎","title":"リーダークラス","job_title":"係長","dept":"情報システム部","day0":true,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"株式会社QTnet","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"阿部 純也","title":"一般社員","job_title":"一般","dept":"公共営業部","day0":true,"day1":false},{"name":"小山 洋典","title":"課長・マネージャークラス","job_title":"グループ長","dept":"情報戦略システム部","day0":true,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"株式会社　オージス総研","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"有間 博道","title":"経営者・役員","job_title":"グランドフェロー","dept":"インベストメント＆ファイナンス事業部","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"株式会社きんでん","day0":false,"day1":true,"participation":"DAY1のみ","count":1,"method":"社名照合","attendees":[{"name":"小早川 亮","title":"一般社員","job_title":"主任","dept":"情報システム部","day0":false,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"株式会社エネコム","day0":true,"day1":true,"participation":"DAY0+DAY1","count":4,"method":"社名照合","attendees":[{"name":"勲 時乘","title":"課長・マネージャークラス","job_title":"専任部長","dept":"DXイノベーションサクセス部","day0":true,"day1":false},{"name":"加川 勝也","title":"リーダークラス","job_title":"サブマネージャー","dept":"DX事業推進本部","day0":true,"day1":true},{"name":"首藤 基綱","title":"リーダークラス","job_title":"副長","dept":"DX事業推進本部","day0":true,"day1":true},{"name":"福井 健太","title":"一般社員","job_title":"一般職","dept":"社内DX推進部","day0":true,"day1":false}],"accountType":"Enterprise"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"株式会社オージス総研","day0":true,"day1":true,"participation":"DAY0+DAY1","count":1,"method":"社名照合","attendees":[{"name":"太田 篤","title":"課長・マネージャークラス","job_title":"マネジャー","dept":"情報システム部企画チーム","day0":true,"day1":true}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"株式会社中部プラントサービス","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"柴田 輝久","title":"課長・マネージャークラス","job_title":"マネジャー","dept":"情報システム","day0":true,"day1":false}],"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"沖電グローバルシステムズ株式会社","day0":true,"day1":false,"participation":"DAY0のみ","count":1,"method":"社名照合","attendees":[{"name":"横田 翔","title":"リーダークラス","job_title":"主任","dept":"ビジネスソリューション事業部","day0":true,"day1":false}],"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"西日本旅客鉄道株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":5,"method":"社名照合","attendees":[{"name":"大石 佳奈","title":"一般社員","job_title":"一般社員","dept":"システムマネジメント部","day0":true,"day1":true},{"name":"稲垣 つかさ","title":"リーダークラス","job_title":"主査","dept":"システムマネジメント部","day0":false,"day1":true},{"name":"小島 貴行","title":"課長・マネージャークラス","job_title":"課長","dept":"デジタルソリューション本部　システムマネジメント部　SaaS・AIソリューション","day0":false,"day1":true},{"name":"野世 佳織","title":"一般社員","job_title":"課員","dept":"システムマネジメント部","day0":false,"day1":true},{"name":"三須 詩織","title":"一般社員","job_title":"課員","dept":"システムマネジメント部","day0":false,"day1":true}],"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"関西電力株式会社","day0":true,"day1":true,"participation":"DAY0+DAY1","count":2,"method":"社名照合","attendees":[{"name":"杉浦 一成","title":"課長・マネージャークラス","job_title":"マネジャー","dept":"IT戦略室","day0":true,"day1":true},{"name":"田倉 有夏","title":"一般社員","job_title":"担当","dept":"IT戦略室","day0":true,"day1":true}],"accountType":"Enterprise Plus"}] },
+  osaka: { raw: [{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"ニプロ（株）","attendees":[{"name":"神田 真","title":"部長・グループ長クラス","dept":"IT推進本部"},{"name":"内田 成彦","title":"部長・グループ長クラス","dept":"IT推進本部"}],"count":2,"accountType":"Business Plus"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"日亜化学工業（株）","attendees":[{"name":"吉岡 知生","title":"リーダークラス","dept":"システム開発本部"}],"count":1,"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"（株）日本触媒","attendees":[{"name":"高岩 聖悟","title":"課長・マネージャークラス","dept":"ＩＴ統括部"},{"name":"野口 むつみ","title":"一般社員","dept":"DX推進本部IT統括部"},{"name":"羽栗 雄平","title":"一般社員","dept":"IT統括部"}],"count":3,"accountType":"Enterprise Plus"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"（株）椿本チエイン","attendees":[{"name":"岩井 翼","title":"課長・マネージャークラス","dept":"情報システム部"}],"count":1,"accountType":"苦戦【未商談】"},{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","company":"（株）神戸製鋼所","attendees":[{"name":"今井 健太","title":"一般社員","dept":"技術開発本部 企画管理部"},{"name":"長峯 勲","title":"課長・マネージャークラス","dept":"技術開発本部　企画管理部"}],"count":2,"accountType":"苦戦【未商談】"},{"owner_en":"Moriki Yuta","owner_jp":"守木 誠","company":"エスペック（株）","attendees":[{"name":"眞弓 佳士","title":"課長・マネージャークラス","dept":"IT戦略部"},{"name":"山室 哲也","title":"部長・グループ長クラス","dept":"IT戦略部"}],"count":2,"accountType":"Enterprise Plus"},{"owner_en":"Moriki Yuta","owner_jp":"守木 誠","company":"ニチコン（株）","attendees":[{"name":"河村 潔","title":"部長・グループ長クラス","dept":"デジタル化推進本部"}],"count":1,"accountType":""},{"owner_en":"Moriki Yuta","owner_jp":"守木 誠","company":"フジッコ（株）","attendees":[{"name":"多田 佳澄","title":"一般社員","dept":"デジタル戦略部"}],"count":1,"accountType":"Enterprise"},{"owner_en":"Moriki Yuta","owner_jp":"守木 誠","company":"因幡電機産業（株）","attendees":[{"name":"阪田 将麻","title":"一般社員","dept":"情報システム部"}],"count":1,"accountType":"Enterprise Plus"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 修","company":"古野電気（株）","attendees":[{"name":"村上 祐介","title":"一般社員","dept":"IT部"}],"count":1,"accountType":"Enterprise"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 修","company":"広島アルミニウム工業（株）","attendees":[{"name":"村上 照明","title":"一般社員","dept":"情報管理部"},{"name":"沖野 達則","title":"一般社員","dept":"情報管理部"}],"count":2,"accountType":"Business Plus"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 修","company":"近鉄不動産（株）","attendees":[{"name":"濱口 塁","title":"課長・マネージャークラス","dept":"経営企画室"}],"count":1,"accountType":"Enterprise"},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 修","company":"（株）パトライト","attendees":[{"name":"栗本 哲","title":"課長・マネージャークラス","dept":"管理本部経営企画部経営企画課"}],"count":1,"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"ケイミュー（株）","attendees":[{"name":"富田 和雄","title":"部長・グループ長クラス","dept":"ＩＴ推進部"},{"name":"魚山 怜那","title":"一般社員","dept":"IT推進部"}],"count":2,"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"宝ホールディングス（株）","attendees":[{"name":"松田 純","title":"課長・マネージャークラス","dept":"グループ管理室ＩＴ推進部"}],"count":1,"accountType":"かわ Target"},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"株式会社ヨータイ","attendees":[{"name":"竹井 明","title":"課長・マネージャークラス","dept":"業務部情報システムグループ"}],"count":1,"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"株式会社四電技術コンサルタント","attendees":[{"name":"橋本 学","title":"経営者・役員","dept":"役員室"}],"count":1,"accountType":""},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"阪神高速技研（株）","attendees":[{"name":"藤本 寛隆","title":"一般社員","dept":"土木部"},{"name":"岡部 壱星","title":"一般社員","dept":"システム事業本部"},{"name":"中村 凜","title":"その他","dept":"システム事業本部"}],"count":3,"accountType":"Enterprise Plus"},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","company":"ＴＯＡ（株）","attendees":[{"name":"佐久間 陽","title":"課長・マネージャークラス","dept":"情報システム部"}],"count":1,"accountType":"かわ Target"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"タカラスタンダード（株）","attendees":[{"name":"小林 憲司","title":"部長・グループ長クラス","dept":"TDX推進本部IT戦略部"}],"count":1,"accountType":"苦戦【未商談】"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"ワタキューセイモア（株）","attendees":[{"name":"川﨑 浩希","title":"一般社員","dept":"IT開発部"},{"name":"佐々木 菜絵","title":"一般社員","dept":"IT改革本部IT開発部インフラ課"}],"count":2,"accountType":"Business Plus"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"東洋紡（株）","attendees":[{"name":"川嶋 洋介","title":"リーダークラス","dept":"TX・業務革新総括部"}],"count":1,"accountType":"Enterprise Advanced"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"積水ハウス（株）","attendees":[{"name":"中野 正詔","title":"課長・マネージャークラス","dept":"ＩＴデザイン部"}],"count":1,"accountType":"Enterprise Plus"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"西尾レントオール（株）","attendees":[{"name":"吉原 泰介","title":"課長・マネージャークラス","dept":"情報システム室"}],"count":1,"accountType":"Enterprise Advanced"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"（株）ゼンリン","attendees":[{"name":"久保田 耕平","title":"部長・グループ長クラス","dept":"システム開発本部 情報システム開発部"}],"count":1,"accountType":"苦戦【未商談】"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"（株）ワコール","attendees":[{"name":"渡邊 雄太","title":"リーダークラス","dept":"IT戦略本部　IT企画開発部　テクノロジーインフラ担当"},{"name":"藤田 りりか","title":"一般社員","dept":"ＩＴ戦略本部　ＩＴ企画開発部　テクノロジー・インフラ担当"}],"count":2,"accountType":"Enterprise"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"（株）奥村組","attendees":[{"name":"横山 俊介","title":"リーダークラス","dept":"ICT統括センター"},{"name":"藤本 情志","title":"部長・グループ長クラス","dept":"ICT統括センターシステム部"}],"count":2,"accountType":"苦戦【未商談】"},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","company":"Ｉ－ＰＥＸ（株）","attendees":[{"name":"矢野 仁","title":"部長・グループ長クラス","dept":"情報システム開発部"}],"count":1,"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 康之","company":"カナデビア株式会社","attendees":[{"name":"山本 恭輔","title":"リーダークラス","dept":"ICT推進本部 情報基盤管理部"}],"count":1,"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 康之","company":"黒崎播磨株式会社","attendees":[{"name":"柴田 達哉","title":"課長・マネージャークラス","dept":"デジタル技術部"}],"count":1,"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 康之","company":"（株）かんでんエンジニアリング","attendees":[{"name":"岩井 克憲","title":"課長・マネージャークラス","dept":"ＩＴソリューション部"}],"count":1,"accountType":"苦戦【未商談】"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 康之","company":"（株）オプテージ","attendees":[{"name":"尾崎 賢大","title":"一般社員","dept":"コーポレートＩＴシステム部ＩＴ基盤・技術支援Ｔ"},{"name":"渡邊 智仁","title":"部長・グループ長クラス","dept":"営業第2部"},{"name":"高津 英樹","title":"課長・マネージャークラス","dept":"営業部門"},{"name":"伊藤 宏斗","title":"一般社員","dept":"ICTソリューション部　ICTプリセールスチーム"},{"name":"大原 正雄","title":"部長・グループ長クラス","dept":"ICTソリューション部"}],"count":5,"accountType":"Enterprise Plus"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 康之","company":"（株）ダイセル","attendees":[{"name":"大東 正和","title":"課長・マネージャークラス","dept":"デジタル戦略推進センター"}],"count":1,"accountType":"苦戦【未商談】"},{"owner_en":"Sakurai Akio","owner_jp":"桜井 康之","company":"（株）関電システムズ","attendees":[{"name":"稲葉 隆","title":"部長・グループ長クラス","dept":"イノベーション共創本部需給システム部"},{"name":"伊藤 智子","title":"一般社員","dept":"基盤システム部"}],"count":2,"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"ジェイアール東海情報システム（株）","attendees":[{"name":"山田 直哉","title":"一般社員","dept":"基盤システム部"}],"count":1,"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"パナソニックインフォメーションシステムズ株式会社","attendees":[{"name":"福永 憲一","title":"部長・グループ長クラス","dept":"ICTソリューション本部"}],"count":1,"accountType":"苦戦【未商談】"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"九州電力（株）","attendees":[{"name":"築地原 護","title":"課長・マネージャークラス","dept":"情報通信本部"}],"count":1,"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"京セラドキュメントソリューションズ（株）","attendees":[{"name":"藤原 恵陽","title":"その他","dept":"営業本部 EP営業統括部"},{"name":"下司 将寛","title":"一般社員","dept":"西日本EP営業課"}],"count":2,"accountType":"苦戦【未商談】"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"住友電工情報システム（株）","attendees":[{"name":"杉田 良介","title":"課長・マネージャークラス","dept":"QuickSolution技術G"}],"count":1,"accountType":""},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"川崎重工業（株）","attendees":[{"name":"澤井 達明","title":"リーダークラス","dept":"技術開発本部"},{"name":"西岡 航","title":"一般社員","dept":"DX戦略本部コーポレートデジタル総括部グループITインフラ部インフラ企画課"}],"count":2,"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"株式会社エネコム","attendees":[{"name":"加川 勝也","title":"リーダークラス","dept":"DX事業推進本部"}],"count":1,"accountType":"Enterprise"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"西日本旅客鉄道（株）","attendees":[{"name":"小島 貴行","title":"課長・マネージャークラス","dept":"デジタルソリューション本部　システムマネジメント部　SaaS・AIソリューション"},{"name":"稲垣 つかさ","title":"一般社員","dept":"システムマネジメント部"},{"name":"大石 佳奈","title":"一般社員","dept":"システムマネジメント部"},{"name":"大石 佳奈","title":"一般社員","dept":"システムマネジメント部"},{"name":"野世 佳織","title":"一般社員","dept":"システムマネジメント部"},{"name":"三須 詩織","title":"一般社員","dept":"システムマネジメント部"}],"count":6,"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"関西電力（株）","attendees":[{"name":"杉浦 一成","title":"課長・マネージャークラス","dept":"IT戦略室"},{"name":"田倉 有夏","title":"一般社員","dept":"IT部門"}],"count":2,"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"（株）きんでん","attendees":[{"name":"小早川 亮","title":"一般社員","dept":"情報システム部"}],"count":1,"accountType":"Enterprise Plus"},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","company":"（株）オージス総研","attendees":[{"name":"吉田 千夏","title":"リーダークラス","dept":"情報システム部"}],"count":1,"accountType":""}] }
+};
+const DATA = {
+  tokyo: JSON.parse(JSON.stringify(EVENTS.tokyo.raw)),
+  osaka: JSON.parse(JSON.stringify(EVENTS.osaka.raw))
+};
+
+let currentEvent = 'tokyo';
+let sortKey = 'owner_jp';
+let sortAsc = true;
+
+const REP_COLORS = {
+  '川島 有貴':'#0061d5','松永 祐依':'#7c3aed','守木 誠':'#059669',
+  '大住 健太郎':'#d97706','桜井 康之':'#db2777','菅 和樹':'#0891b2','嶋津 修':'#9333ea',
+  '嶋津 早希子':'#9333ea','桜井 章雄':'#db2777','森木 勇太':'#059669'
+};
+function repColor(name){ return REP_COLORS[name]||'#6b7280'; }
+
+function atBadge(at){
+  if(!at) return '<span class="at-empty">—</span>';
+  const map = {
+    'Enterprise Advanced':'at-ent-adv','Enterprise Plus':'at-ent-plus',
+    'Enterprise':'at-ent','Business Plus':'at-bus-plus','Business':'at-bus',
+    '苦戦【未商談】':'at-kusen-mi','苦戦【コンタクト不明】':'at-kusen-un'
+  };
+  // Target types
+  let cls = 'at-target';
+  if(map[at]) cls = map[at];
+  return `<span class="at-badge ${cls}">${at}</span>`;
+}
+
+function switchEvent(evt){
+  currentEvent = evt;
+  const c = document.getElementById('main-container');
+  c.className = 'container ev-'+evt;
+  document.getElementById('topnav').className = 'topnav ev-'+evt;
+  document.getElementById('tab-tokyo').className = 'event-tab'+(evt==='tokyo'?' active-tokyo':'');
+  document.getElementById('tab-osaka').className = 'event-tab'+(evt==='osaka'?' active-osaka':'');
+  document.getElementById('modal-inner').className = 'modal ev-'+evt;
+  sortKey='owner_jp'; sortAsc=true;
+  renderKPIBar(evt);
+  renderTableHead(evt);
+  renderPartFilter(evt);
+  buildAtFilter();
+  buildTabs();
+  applyFilters();
+}
+
+function renderKPIBar(evt){
+  const d=DATA[evt];
+  const companies=d.length;
+  const attendees=d.reduce((s,r)=>s+r.count,0);
+  const bar=document.getElementById('kpi-bar');
+  if(evt==='tokyo'){
+    const day0=d.reduce((s,r)=>s+r.attendees.filter(a=>a.day0).length,0);
+    const day1=d.reduce((s,r)=>s+r.attendees.filter(a=>a.day1).length,0);
+    const both=d.reduce((s,r)=>s+r.attendees.filter(a=>a.day0&&a.day1).length,0);
+    bar.innerHTML=`
+      <div class="kpi"><div class="n">${companies}</div><div class="l">顧客数</div></div>
+      <div class="kpi"><div class="n">${attendees}</div><div class="l">登録人数</div></div>
+      <div class="kpi"><div class="n">${day0}</div><div class="l">🌐 DAY0</div></div>
+      <div class="kpi"><div class="n">${day1}</div><div class="l">🏛 DAY1</div></div>
+      <div class="kpi"><div class="n">${both}</div><div class="l">🔁 両日</div></div>`;
+  } else {
+    const reps=new Set(d.map(r=>r.owner_jp)).size;
+    bar.innerHTML=`
+      <div class="kpi"><div class="n">${companies}</div><div class="l">顧客数</div></div>
+      <div class="kpi"><div class="n">${attendees}</div><div class="l">登録人数</div></div>
+      <div class="kpi"><div class="n">${reps}</div><div class="l">担当営業数</div></div>`;
+  }
+}
+
+function renderTableHead(evt){
+  const th=document.getElementById('table-head');
+  if(evt==='tokyo'){
+    th.innerHTML=`<tr>
+      <th onclick="sortBy('owner_jp')">担当営業 <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('company')">会社名 <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('accountType')">Account Type <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('count')" class="td-cnt">人数 <span class="sort-icon">↕</span></th>
+      <th>参加区分</th>
+      <th onclick="sortBy('day0c')" class="td-cnt">🌐 DAY0 <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('day1c')" class="td-cnt">🏛 DAY1 <span class="sort-icon">↕</span></th>
+    </tr>`;
+  } else {
+    th.innerHTML=`<tr>
+      <th onclick="sortBy('owner_jp')">担当営業 <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('company')">会社名 <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('accountType')">Account Type <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('count')" class="td-cnt">人数 <span class="sort-icon">↕</span></th>
+    </tr>`;
+  }
+}
+
+function renderPartFilter(evt){
+  const wrap=document.getElementById('part-filter-wrap');
+  if(evt==='tokyo'){
+    wrap.innerHTML=`<label>参加区分</label>
+    <select id="part-sel" onchange="applyFilters()">
+      <option value="">全て</option>
+      <option value="DAY0">DAY0のみ</option>
+      <option value="DAY1">DAY1のみ</option>
+      <option value="DAY0+DAY1">両日</option>
+    </select>`;
+  } else {
+    wrap.innerHTML='';
+  }
+}
+
+function buildAtFilter(){
+  const d=DATA[currentEvent];
+  const types=[...new Set(d.map(r=>r.accountType||'').filter(Boolean))].sort();
+  const sel=document.getElementById('at-sel');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">全て</option>';
+  types.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t; opt.textContent=t;
+    sel.appendChild(opt);
+  });
+  if(cur) sel.value=cur;
+}
+
+function importJSON(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const imported=JSON.parse(ev.target.result);
+      if(!Array.isArray(imported)) throw new Error('配列ではありません');
+      DATA[currentEvent]=imported;
+      const s=document.getElementById('import-status');
+      s.textContent='✓ '+imported.length+'件インポート完了';
+      s.className='import-status ok';
+      document.getElementById('last-update').textContent='最終更新: '+new Date().toLocaleString('ja-JP');
+      buildAtFilter(); buildTabs(); applyFilters(); renderKPIBar(currentEvent);
+    }catch(err){
+      const s=document.getElementById('import-status');
+      s.textContent='✗ エラー: '+err.message;
+      s.className='import-status err';
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(DATA[currentEvent],null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='boxworks_'+currentEvent+'_area1.json';
+  a.click();
+}
+
+function exportSchema(){
+  const schema={
+    tokyo:{description:"BoxWorks Tokyo 2026 参加者データ",fields:{owner_en:"英語担当者名",owner_jp:"日本語担当者名",company:"会社名",accountType:"Account Type",day0:"全体DAY0有無",day1:"全体DAY1有無",participation:"参加区分",count:"参加者数",attendees:"[{name,title,dept,day0,day1}]"}},
+    osaka:{description:"BoxWorks Osaka 2026 参加者データ",fields:{owner_en:"英語担当者名",owner_jp:"日本語担当者名",company:"会社名",accountType:"Account Type",count:"参加者数",attendees:"[{name,title,dept}]"}}
+  };
+  const blob=new Blob([JSON.stringify(schema,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='boxworks_schema.json';
+  a.click();
+}
+
+function buildTabs(){
+  const d=DATA[currentEvent];
+  const repSel=document.getElementById('rep-sel');
+  const cur=repSel.value;
+  const reps=[...new Set(d.map(r=>r.owner_jp))].sort();
+  repSel.innerHTML='<option value="">全員</option>';
+  reps.forEach(r=>{
+    const cnt=d.filter(x=>x.owner_jp===r).length;
+    const opt=document.createElement('option');
+    opt.value=r; opt.textContent=r+' ('+cnt+'社)';
+    repSel.appendChild(opt);
+  });
+  if(cur) repSel.value=cur;
+  const bar=document.getElementById('tab-bar');
+  const total=d.reduce((s,r)=>s+r.count,0);
+  bar.innerHTML=`<div class="tab tab-all active" onclick="setTab('')"><span>全員</span><span class="badge-tab">${total}名</span></div>`;
+  reps.forEach(r=>{
+    const att=d.filter(x=>x.owner_jp===r).reduce((s,x)=>s+x.count,0);
+    const col=repColor(r);
+    bar.innerHTML+=`<div class="tab" onclick="setTab('${r}')" style="border-color:${col}20;" data-rep="${r}">
+      <span class="dot" style="background:${col}"></span><span>${r}</span>
+      <span class="badge-tab">${att}名</span></div>`;
+  });
+}
+
+function setTab(rep){
+  document.querySelectorAll('#tab-bar .tab').forEach(t=>{t.classList.remove('active');t.style.background='';t.style.color='';} );
+  const clicked=rep===''?document.querySelector('.tab-all'):[...document.querySelectorAll('#tab-bar .tab')].find(t=>t.dataset.rep===rep);
+  if(clicked){
+    clicked.classList.add('active');
+    if(rep){const col=repColor(rep);clicked.style.background=col;clicked.style.color='#fff';}
+  }
+  document.getElementById('rep-sel').value=rep;
+  applyFilters();
+}
+
+function applyFilters(){
+  let d=[...DATA[currentEvent]];
+  const rep=document.getElementById('rep-sel').value;
+  const company=document.getElementById('company-input').value.toLowerCase();
+  const partSel=document.getElementById('part-sel');
+  const part=partSel?partSel.value:'';
+  const atVal=document.getElementById('at-sel').value;
+
+  if(rep) d=d.filter(r=>r.owner_jp===rep);
+  if(company) d=d.filter(r=>r.company.toLowerCase().includes(company));
+  if(atVal) d=d.filter(r=>(r.accountType||'')===atVal);
+  if(part) d=d.filter(r=>{
+    const p=r.participation||'';
+    if(part==='DAY0') return p==='DAY0';
+    if(part==='DAY1') return p==='DAY1';
+    if(part==='DAY0+DAY1') return p==='DAY0+DAY1';
+    return true;
+  });
+
+  d.sort((a,b)=>{
+    let av,bv;
+    if(sortKey==='day0c'){av=a.attendees.filter(x=>x.day0).length;bv=b.attendees.filter(x=>x.day0).length;}
+    else if(sortKey==='day1c'){av=a.attendees.filter(x=>x.day1).length;bv=b.attendees.filter(x=>x.day1).length;}
+    else{av=a[sortKey]||'';bv=b[sortKey]||'';}
+    if(typeof av==='number')return sortAsc?av-bv:bv-av;
+    return sortAsc?(av<bv?-1:av>bv?1:0):(av<bv?1:av>bv?-1:0);
+  });
+
+  const total=d.reduce((s,r)=>s+r.count,0);
+  document.getElementById('filter-count').textContent=d.length+'社 / '+total+'名';
+  renderTable(d);
+  updateKPI(d);
+}
+
+function updateKPI(d){
+  const bar=document.getElementById('kpi-bar');
+  const ns=bar.querySelectorAll('.n');
+  if(!ns.length) return;
+  ns[0].textContent=d.length;
+  ns[1].textContent=d.reduce((s,r)=>s+r.count,0);
+  if(currentEvent==='tokyo'&&ns.length>=5){
+    ns[2].textContent=d.reduce((s,r)=>s+r.attendees.filter(a=>a.day0).length,0);
+    ns[3].textContent=d.reduce((s,r)=>s+r.attendees.filter(a=>a.day1).length,0);
+    ns[4].textContent=d.reduce((s,r)=>s+r.attendees.filter(a=>a.day0&&a.day1).length,0);
+  }else if(currentEvent==='osaka'&&ns.length>=3){
+    ns[2].textContent=new Set(d.map(r=>r.owner_jp)).size;
+  }
+}
+
+function renderTable(d){
+  const tbody=document.getElementById('table-body');
+  if(!d.length){tbody.innerHTML='<tr><td colspan="10" class="empty">データなし</td></tr>';return;}
+  const isT=currentEvent==='tokyo';
+  const groupByRep=(sortKey==='owner_jp');
+  let html='', currentRep=null;
+
+  if(groupByRep){
+    d.forEach(row=>{
+      const rep=row.owner_jp;
+      if(rep!==currentRep){
+        const repRows=d.filter(r=>r.owner_jp===rep);
+        const repAtt=repRows.reduce((s,r)=>s+r.count,0);
+        const col=repColor(rep);
+        let statsHtml='';
+        if(isT){
+          const d0=repRows.reduce((s,r)=>s+r.attendees.filter(a=>a.day0).length,0);
+          const d1=repRows.reduce((s,r)=>s+r.attendees.filter(a=>a.day1).length,0);
+          statsHtml=`<span class="group-stat"><span class="stat-icon">🌐</span> DAY0: ${d0}名</span>
+            <span class="group-stat"><span class="stat-icon">🏛</span> DAY1: ${d1}名</span>
+            <span class="group-stat"><span class="stat-icon">👥</span> 合計: ${repAtt}名 (${repRows.length}社)</span>`;
+        }else{
+          statsHtml=`<span class="group-stat"><span class="stat-icon">👥</span> 合計: ${repAtt}名 (${repRows.length}社)</span>`;
+        }
+        const colspan=isT?7:4;
+        html+=`<tr class="group-header-row"><td colspan="${colspan}">
+          <span class="dot" style="background:${col};width:10px;height:10px;display:inline-block;border-radius:50%;margin-right:8px;vertical-align:middle;"></span>
+          <span class="group-rep-name">${rep}</span>${statsHtml}</td></tr>`;
+        currentRep=rep;
+      }
+      html+=buildRow(row,isT);
+    });
+  }else{
+    d.forEach(row=>{html+=buildRow(row,isT);});
+  }
+  tbody.innerHTML=html;
+}
+
+function buildRow(row,isT){
+  const idx=DATA[currentEvent].indexOf(row);
+  const col=repColor(row.owner_jp);
+  const at=atBadge(row.accountType||'');
+  if(isT){
+    const d0c=row.attendees.filter(a=>a.day0).length;
+    const d1c=row.attendees.filter(a=>a.day1).length;
+    const part=row.participation||'';
+    const badge=part==='DAY0+DAY1'?'<span class="badge badge-both">🔁 両日</span>':
+                 part==='DAY0'?'<span class="badge badge-day0">🌐 DAY0</span>':
+                 part==='DAY1'?'<span class="badge badge-day1">🏛 DAY1</span>':'';
+    return `<tr>
+      <td><div class="td-rep"><span class="dot" style="background:${col}"></span>${row.owner_jp}</div></td>
+      <td class="td-company">${row.company}</td>
+      <td>${at}</td>
+      <td class="td-cnt"><span class="clickable-count" onclick="openModal(${idx})">${row.count}名</span></td>
+      <td>${badge}</td>
+      <td class="td-cnt">${d0c>0?d0c:'—'}</td>
+      <td class="td-cnt">${d1c>0?d1c:'—'}</td>
+    </tr>`;
+  }else{
+    return `<tr>
+      <td><div class="td-rep"><span class="dot" style="background:${col}"></span>${row.owner_jp}</div></td>
+      <td class="td-company">${row.company}</td>
+      <td>${at}</td>
+      <td class="td-cnt"><span class="clickable-count" onclick="openModal(${idx})">${row.count}名</span></td>
+    </tr>`;
+  }
+}
+
+function sortBy(key){
+  if(sortKey===key){sortAsc=!sortAsc;}else{sortKey=key;sortAsc=true;}
+  document.querySelectorAll('thead th').forEach(th=>{
+    th.classList.remove('sorted');
+    const icon=th.querySelector('.sort-icon');
+    if(icon)icon.textContent='↕';
+  });
+  const keyMap={owner_jp:0,company:1,accountType:2,count:3};
+  const tokyoMap={owner_jp:0,company:1,accountType:2,count:3,day0c:5,day1c:6};
+  const m=currentEvent==='tokyo'?tokyoMap:keyMap;
+  const idx=m[key];
+  if(idx!==undefined){
+    const ths=document.querySelectorAll('thead th');
+    if(ths[idx]){ths[idx].classList.add('sorted');const ic=ths[idx].querySelector('.sort-icon');if(ic)ic.textContent=sortAsc?'↑':'↓';}
+  }
+  applyFilters();
+}
+
+function openModal(idx){
+  const row=DATA[currentEvent][idx];
+  if(!row)return;
+  const col=repColor(row.owner_jp);
+  document.getElementById('modal-company').textContent=row.company;
+  document.getElementById('modal-sub').innerHTML=row.owner_jp+' ｜ '+row.count+'名'+(row.accountType?'  '+atBadge(row.accountType):'');
+  document.getElementById('modal-header').style.borderBottomColor=col;
+  const isT=currentEvent==='tokyo';
+  let bodyHtml='';
+  row.attendees.forEach(a=>{
+    let badges='';
+    if(isT){
+      if(a.day0)badges+='<span class="badge badge-day0">🌐 DAY0</span>';
+      if(a.day1)badges+='<span class="badge badge-day1">🏛 DAY1</span>';
+    }
+    bodyHtml+=`<div class="att-card">
+      <div class="att-name">${a.name||'（氏名なし）'}</div>
+      <div class="att-meta">${[a.title,a.dept].filter(Boolean).join(' ／ ')}</div>
+      ${badges?`<div class="att-badges">${badges}</div>`:''}</div>`;
+  });
+  document.getElementById('modal-body').innerHTML=bodyHtml||'<div class="empty">参加者情報なし</div>';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+switchEvent('tokyo');
+</script>
+</div><!-- /app-wrap -->
+</body>
+</html>
