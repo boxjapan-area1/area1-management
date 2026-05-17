@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プロジェクト管理</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif; background: #f5f4f0; color: #1a1a1a; font-size: 14px; }
+#login-screen { display:none; position:fixed; inset:0; background:#f5f4f0; z-index:1000; align-items:center; justify-content:center; flex-direction:column; gap:20px; }
+#login-screen.visible { display:flex; }
+.login-card { background:#fff; border-radius:16px; border:0.5px solid #e0ddd5; padding:40px 36px; text-align:center; max-width:360px; width:90%; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+.login-logo { font-size:32px; margin-bottom:12px; }
+.login-title { font-size:18px; font-weight:600; color:#1a1a1a; margin-bottom:6px; }
+.login-sub { font-size:13px; color:#888; margin-bottom:28px; line-height:1.6; }
+.btn-google { display:inline-flex; align-items:center; gap:10px; padding:12px 24px; background:#fff; border:1px solid #d0cdc5; border-radius:10px; font-size:14px; font-family:inherit; cursor:pointer; color:#1a1a1a; font-weight:500; transition:background 0.15s; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+.btn-google:hover { background:#f5f4f0; }
+.btn-google svg { width:20px; height:20px; flex-shrink:0; }
+.login-error { font-size:12px; color:#A32D2D; margin-top:14px; display:none; }
+.login-error.visible { display:block; }
+#app-wrapper { display:none; }
+#app-wrapper.visible { display:block; }
+.app-header { background: #fff; border-bottom: 0.5px solid #e0ddd5; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; gap: 10px; }
+.app-title { font-size: 16px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.app-title span { font-size: 12px; font-weight: 400; color: #888; }
+.toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.btn { padding: 7px 12px; border-radius: 8px; border: 0.5px solid #d0cdc5; background: #fff; font-size: 12px; cursor: pointer; color: #1a1a1a; font-family: inherit; transition: background 0.15s; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; -webkit-tap-highlight-color: transparent; }
+.btn:hover, .btn:active { background: #f0ede8; }
+.btn.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.btn.primary:hover, .btn.primary:active { background: #333; }
+.btn.btn-json-in  { background: #1a3a6b; color: #fff; border-color: #1a3a6b; }
+.btn.btn-json-in:hover  { background: #254f96; }
+.btn.btn-json-out { background: #fff; color: #1a3a6b; border-color: #1a3a6b; }
+.btn.btn-json-out:hover { background: #e6f1fb; }
+.btn.btn-csv      { background: #1a7a3a; color: #fff; border-color: #1a7a3a; }
+.btn.btn-csv:hover { background: #22a04d; }
+.stats-bar { display: flex; gap: 10px; padding: 12px 20px; background: #f5f4f0; flex-wrap: wrap; }
+.stat { background: #fff; border-radius: 8px; border: 0.5px solid #e0ddd5; padding: 9px 14px; text-align: center; min-width: 72px; flex: 1; }
+.stat-num { font-size: 20px; font-weight: 600; }
+.stat-lbl { font-size: 11px; color: #888; margin-top: 1px; }
+.stat.s-all      .stat-num { color: #1a1a1a; }
+.stat.s-progress .stat-num { color: #185FA5; }
+.stat.s-done     .stat-num { color: #3B6D11; }
+.sync-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.sync-badge.notion { background: #eaf3de; color: #3B6D11; border: 0.5px solid #c0dd97; }
+.sync-badge.local  { background: #f1efe8; color: #888780; border: 0.5px solid #d3d1c7; }
+.sync-badge.saving { background: #e6f1fb; color: #185FA5; border: 0.5px solid #b5d4f4; }
+.sync-badge.error  { background: #fcebeb; color: #A32D2D;  border: 0.5px solid #f7c1c1; }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.filter-bar { padding: 10px 20px; display: flex; align-items: center; gap: 6px; background: #f5f4f0; border-bottom: 0.5px solid #e0ddd5; flex-wrap: wrap; }
+.filter-label { font-size: 12px; color: #888; }
+.filter-chip { padding: 5px 12px; border-radius: 20px; border: 0.5px solid #d0cdc5; background: #fff; font-size: 12px; cursor: pointer; color: #555; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+.filter-chip:hover, .filter-chip:active { border-color: #888; }
+.filter-chip.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.status-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; cursor: pointer; border: none; font-family: inherit; gap: 4px; -webkit-tap-highlight-color: transparent; }
+.status-badge.未着手 { background: #f1efe8; color: #888780; border: 0.5px solid #d3d1c7; }
+.status-badge.進行中 { background: #e6f1fb; color: #185FA5; border: 0.5px solid #b5d4f4; }
+.status-badge.完了   { background: #eaf3de; color: #3B6D11; border: 0.5px solid #c0dd97; }
+.date-wrap { display: flex; flex-direction: column; gap: 2px; }
+.date-input { border: none; background: transparent; font-size: 11px; color: #888; font-family: inherit; cursor: pointer; width: 100%; }
+.date-input:focus { outline: 1px solid #b5d4f4; border-radius: 4px; padding: 1px 2px; }
+.date-tag { font-size: 11px; font-weight: 500; }
+.date-tag.overdue { color: #A32D2D; }
+.date-tag.soon    { color: #854F0B; }
+.date-tag.ok      { color: #555; }
+.editable { border: none; background: transparent; font-size: 12px; color: inherit; font-family: inherit; width: 100%; resize: none; }
+.editable:focus { outline: 1px solid #b5d4f4; border-radius: 4px; padding: 2px 4px; background: #fff; }
+.editable.na-text    { color: #854F0B; }
+.editable.owner-text { color: #185FA5; }
+.editable.notes-text { color: #555; height: 34px; min-height: 34px; }
+.name-input { border: none; background: transparent; font-size: 13px; font-weight: 500; color: #1a1a1a; font-family: inherit; width: 100%; line-height: 1.4; resize: none; min-height: 36px; overflow: hidden; }
+.name-input:focus { outline: 1px solid #b5d4f4; border-radius: 4px; padding: 2px 4px; background: #fff; font-weight: 400; }
+.name-input.checked { text-decoration: line-through; color: #aaa; font-weight: 400; }
+.status-selector { position: fixed; background: #fff; border: 0.5px solid #d0cdc5; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.14); padding: 6px; z-index: 999; min-width: 120px; }
+.status-option { padding: 10px 14px; border-radius: 7px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; -webkit-tap-highlight-color: transparent; }
+.status-option:hover, .status-option:active { background: #f5f4f0; }
+.empty-state { text-align: center; padding: 48px; color: #aaa; font-size: 14px; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 16px 16px 0 0; padding: 24px 20px 32px; width: 100%; max-width: 560px; border: 0.5px solid #e0ddd5; max-height: 92vh; overflow-y: auto; }
+.modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.modal-section-label { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 18px; margin-bottom: 6px; padding-bottom: 5px; border-bottom: 0.5px solid #eeede8; }
+.modal label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; margin-top: 12px; }
+.modal label:first-of-type { margin-top: 0; }
+.modal input[type=text], .modal input[type=date], .modal select, .modal textarea { width: 100%; padding: 10px 12px; border: 0.5px solid #d0cdc5; border-radius: 8px; font-size: 14px; font-family: inherit; background: #fafaf8; color: #1a1a1a; -webkit-appearance: none; }
+.modal textarea { resize: vertical; min-height: 64px; }
+.modal-row { display: flex; gap: 10px; }
+.modal-row > div { flex: 1; min-width: 0; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.modal-footer .btn { padding: 10px 18px; font-size: 14px; }
+.desktop-view { display: block; padding: 20px; overflow-x: auto; }
+.project-table { width: 100%; min-width: 1200px; border-collapse: collapse; background: #fff; border-radius: 12px; border: 0.5px solid #e0ddd5; overflow: hidden; table-layout: fixed; }
+.project-table thead th { background: #fafaf8; padding: 9px 12px; text-align: left; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 0.5px solid #e0ddd5; }
+.sortable { cursor: pointer; user-select: none; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.sortable:hover { color: #1a1a1a; background: #f0ede8; }
+.sort-icon { display: inline-block; margin-left: 4px; opacity: 0.35; font-style: normal; font-size: 10px; }
+.sortable.sort-asc .sort-icon, .sortable.sort-desc .sort-icon { opacity: 1; color: #185FA5; }
+.col-num{width:28px}.col-check{width:34px}.col-name{width:240px}.col-status{width:88px}.col-gdate{width:110px}.col-na{width:280px}.col-owner{width:120px}.col-nadate{width:110px}.col-del{width:42px}
+.th-na-group { border-left: 2px solid #e8e0d4; }
+.td-na-group { border-left: 2px solid #f0ece4; }
+.project-row { border-bottom: 0.5px solid #eeede8; transition: background 0.1s; }
+.project-row:last-child { border-bottom: none; }
+.project-row:hover { background: #fafaf8; }
+.project-row.done-row { opacity: 0.5; }
+.project-row td { padding: 9px 12px; vertical-align: middle; }
+.row-num { font-size: 11px; color: #ccc; text-align: center; }
+.check-cell { text-align: center; }
+.check-cell input[type=checkbox] { cursor: pointer; accent-color: #3B6D11; width: 15px; height: 15px; }
+.action-btn { background: none; border: none; cursor: pointer; font-size: 13px; color: #ddd; padding: 3px 5px; border-radius: 4px; }
+.action-btn:hover { color: #A32D2D; background: #fde8e8; }
+.add-row-desktop { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-top: 1px dashed #e0ddd5; cursor: pointer; color: #aaa; font-size: 13px; transition: color 0.15s; min-width: 1200px; -webkit-tap-highlight-color: transparent; }
+.add-row-desktop:hover { color: #1a1a1a; background: #fafaf8; }
+.add-row-desktop svg { width: 14px; height: 14px; }
+.mobile-view { display: none; padding: 12px 14px; }
+.card { background: #fff; border-radius: 12px; border: 0.5px solid #e0ddd5; margin-bottom: 10px; overflow: hidden; }
+.card-header { display: flex; align-items: flex-start; gap: 10px; padding: 14px 14px 10px; }
+.card-check input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; cursor: pointer; accent-color: #3B6D11; flex-shrink: 0; }
+.card-name { flex: 1; font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.45; cursor: pointer; }
+.card-name.checked { text-decoration: line-through; color: #aaa; font-weight: 400; }
+.card-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.card-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+.card-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; }
+.card-lbl { color: #aaa; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; min-width: 68px; padding-top: 1px; flex-shrink: 0; }
+.card-val { color: #1a1a1a; flex: 1; line-height: 1.4; }
+.card-val.na  { color: #854F0B; }
+.card-val.owner { color: #185FA5; }
+.card-val.empty { color: #ccc; font-style: italic; }
+.card-divider { height: 0.5px; background: #f0ede8; margin: 0 14px; }
+.card-edit-btn { background: none; border: 0.5px solid #d0cdc5; border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #555; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+.card-edit-btn:active { background: #f0ede8; }
+.card-del-btn { background: none; border: none; font-size: 14px; color: #ddd; padding: 4px 6px; border-radius: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.card-del-btn:active { color: #A32D2D; background: #fde8e8; }
+.add-card { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px; background: #fff; border-radius: 12px; border: 1px dashed #d0cdc5; color: #aaa; font-size: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.add-card:active { background: #fafaf8; }
+.add-card svg { width: 16px; height: 16px; }
+@media (max-width: 700px) {
+  .desktop-view { display: none; }
+  .mobile-view  { display: block; }
+  .toolbar .btn-json-in span, .toolbar .btn-json-out span, .toolbar .btn-csv span { display: none; }
+  .modal-overlay { align-items: flex-end; }
+  .modal { border-radius: 16px 16px 0 0; }
+}
+@media (min-width: 701px) {
+  .modal-overlay { align-items: center; }
+  .modal { border-radius: 14px; max-width: 520px; }
+}
+</style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">◆</div>
+    <div class="login-title">プロジェクト管理</div>
+    <div class="login-sub">Googleアカウントでログインしてください</div>
+    <button class="btn-google" id="btn-google-signin">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Googleでログイン
+    </button>
+    <div class="login-error" id="login-error">このアカウントはアクセスできません</div>
+  </div>
+</div>
+<div id="app-wrapper">
+<div class="app-header">
+  <div class="app-title">◆ プロジェクト管理 <span id="project-count"></span></div>
+  <div id="sync-badge" class="sync-badge local"><div class="sync-dot"></div>ローカル</div>
+  <div class="toolbar">
+    <button class="btn btn-json-in"  onclick="importJSON()">🗂 <span>JSONを読み込む</span></button>
+    <button class="btn btn-json-out" onclick="exportJSON()">💾 <span>JSONで書き出し</span></button>
+    <button class="btn btn-csv"      onclick="exportCSV()">📊 <span>CSVエクスポート</span></button>
+    <button class="btn primary"      onclick="openAddModal()">＋ 追加</button>
+  </div>
+  <input type="file" id="json-file-input" accept=".json" style="display:none;" onchange="handleJSONFile(this)" />
+</div>
+<div class="stats-bar">
+  <div class="stat s-all"><div class="stat-num" id="stat-all">0</div><div class="stat-lbl">全件</div></div>
+  <div class="stat s-progress"><div class="stat-num" id="stat-progress">0</div><div class="stat-lbl">進行中</div></div>
+  <div class="stat s-done"><div class="stat-num" id="stat-done">0</div><div class="stat-lbl">完了</div></div>
+</div>
+<div class="filter-bar">
+  <span class="filter-label">表示：</span>
+  <div class="filter-chip active" onclick="setFilter('all',this)">すべて</div>
+  <div class="filter-chip" onclick="setFilter('未着手',this)">未着手</div>
+  <div class="filter-chip" onclick="setFilter('進行中',this)">進行中</div>
+  <div class="filter-chip" onclick="setFilter('完了',this)">完了</div>
+</div>
+<div class="desktop-view">
+  <table class="project-table">
+    <colgroup>
+      <col class="col-num"><col class="col-check"><col class="col-name"><col class="col-status">
+      <col class="col-gdate"><col class="col-na"><col class="col-owner"><col class="col-nadate">
+      <col class="col-notes"><col class="col-del">
+    </colgroup>
+    <thead><tr>
+      <th class="col-num"></th><th class="col-check"></th>
+      <th class="col-name sortable" onclick="sortBy('name')" id="th-name">プロジェクト名<i class="sort-icon">↕</i></th>
+      <th class="col-status sortable" onclick="sortBy('status')" id="th-status">ステータス<i class="sort-icon">↕</i></th>
+      <th class="col-gdate sortable" onclick="sortBy('date')" id="th-date">全体期日<i class="sort-icon">↕</i></th>
+      <th class="col-na th-na-group sortable" onclick="sortBy('na')" id="th-na">Next Action<i class="sort-icon">↕</i></th>
+      <th class="col-owner sortable" onclick="sortBy('naOwner')" id="th-owner">担当<i class="sort-icon">↕</i></th>
+      <th class="col-nadate sortable" onclick="sortBy('naDate')" id="th-nadate">期日<i class="sort-icon">↕</i></th>
+      <th class="col-notes">メモ</th><th class="col-del"></th>
+    </tr></thead>
+    <tbody id="project-list-desktop"></tbody>
+  </table>
+  <div class="add-row-desktop" onclick="openAddModal()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+    プロジェクトを追加
+  </div>
+</div>
+<div class="mobile-view" id="project-list-mobile"></div>
+<div class="status-selector" id="status-selector" style="display:none;">
+  <div class="status-option" onclick="setStatus('未着手')">⬜ 未着手</div>
+  <div class="status-option" onclick="setStatus('進行中')">🔵 進行中</div>
+  <div class="status-option" onclick="setStatus('完了')">✅ 完了</div>
+</div>
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">プロジェクトを追加</h3>
+    <label>プロジェクト名 *</label>
+    <input type="text" id="m-name" placeholder="プロジェクト名を入力" />
+    <div class="modal-row">
+      <div><label>ステータス</label>
+        <select id="m-status">
+          <option value="未着手">未着手</option>
+          <option value="進行中">進行中</option>
+          <option value="完了">完了</option>
+        </select>
+      </div>
+      <div><label>全体期日</label><input type="date" id="m-date" /></div>
+    </div>
+    <div class="modal-section-label">Next Action</div>
+    <label>Next Action</label>
+    <input type="text" id="m-na" placeholder="例：提案書レビュー依頼、○○さんへ確認" />
+    <div class="modal-row">
+      <div><label>担当</label><input type="text" id="m-owner" placeholder="例：田中" /></div>
+      <div><label>期日</label><input type="date" id="m-nadate" /></div>
+    </div>
+    <label>メモ</label>
+    <textarea id="m-notes" placeholder="背景・リンク・補足など"></textarea>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">キャンセル</button>
+      <button class="btn primary" onclick="saveModal()">保存</button>
+    </div>
+  </div>
+</div>
+</div>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+const firebaseConfig = { apiKey:"AIzaSyD2syQa8EhAlJfBtcCxTLsu5az8HO5Pgb8", authDomain:"project-management-6f12b.firebaseapp.com", projectId:"project-management-6f12b", storageBucket:"project-management-6f12b.firebasestorage.app", messagingSenderId:"581150542282", appId:"1:581150542282:web:5f6a71ea00b2228f73a733" };
+const app=initializeApp(firebaseConfig), db=getFirestore(app), auth=getAuth(app), COLL=collection(db,'projects');
+const ALLOWED_EMAILS=['gigoro03@gmail.com'];
+function setSyncBadge(cls,label){const el=document.getElementById('sync-badge');el.className=`sync-badge ${cls}`;el.innerHTML=`<div class="sync-dot"></div>${label}`;}
+const debounceTimers={};
+function debounce(key,fn,ms=800){clearTimeout(debounceTimers[key]);debounceTimers[key]=setTimeout(fn,ms);}
+const DEFAULT_PROJECTS=[
+  {id:1,name:'Sales Enablement DGフェーズの件（マップは後日）',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:2,name:'エグゼクティブカバレッジ・CSM連携（アゲアゲを含む）',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:3,name:'アゲアゲPJ Q2 セミナー',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:4,name:'MM領域 マスメール作戦（第2弾：かわちゃん・さきさん）',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:5,name:'スマート マスメール作戦',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:6,name:'SCS評価制度',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:7,name:'AI対応 BC提案（Ent領域・MM領域）',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:8,name:'BWO Keynote Noriさん・JR西様・東洋紡様の設計＆共有',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:9,name:'Box Caravan 考えていく',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:10,name:'Q2 Team Building',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+  {id:11,name:'CIO Connect Fukuoka 企画書',status:'未着手',date:'',na:'',naOwner:'',naDate:'',notes:'',done:false},
+];
+let projects=[],currentFilter='all',statusTargetId=null,editingModalId=null,sortKey=null,sortDir='asc';
+const STATUS_ORDER={'進行中':0,'未着手':1,'完了':2};
+function startListener(){setSyncBadge('saving','接続中…');const q=query(COLL,orderBy('createdAt','asc'));unsubscribeSnapshot=onSnapshot(q,snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));if(projects.length===0)seedDefaults();setSyncBadge('notion','Firebase同期中');render();},err=>{setSyncBadge('error','接続失敗');console.error(err);});}
+async function seedDefaults(){for(const p of DEFAULT_PROJECTS){const{id,...data}=p;await addDoc(COLL,{...data,createdAt:serverTimestamp()});}}
+async function fsUpdate(id,data){setSyncBadge('saving','保存中…');try{await updateDoc(doc(db,'projects',id),data);setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','保存失敗');}}
+async function fsDelete(id){setSyncBadge('saving','削除中…');try{await deleteDoc(doc(db,'projects',id));setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','削除失敗');}}
+async function fsAdd(data){setSyncBadge('saving','保存中…');try{await addDoc(COLL,{...data,createdAt:serverTimestamp()});setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','保存失敗');}}
+function setFilter(val,el){currentFilter=val;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');render();}
+function sortBy(key){sortDir=(sortKey===key&&sortDir==='asc')?'desc':'asc';sortKey=key;document.querySelectorAll('.sortable').forEach(th=>{th.classList.remove('sort-asc','sort-desc');th.querySelector('.sort-icon').textContent='↕';});const thMap={name:'th-name',status:'th-status',date:'th-date',na:'th-na',naOwner:'th-owner',naDate:'th-nadate'};if(thMap[key]){const th=document.getElementById(thMap[key]);th.classList.add(sortDir==='asc'?'sort-asc':'sort-desc');th.querySelector('.sort-icon').textContent=sortDir==='asc'?'↑':'↓';}render();}
+function applySortFilter(arr){let r=currentFilter==='all'?[...arr]:arr.filter(p=>p.status===currentFilter);if(!sortKey)return r;return r.sort((a,b)=>{let va,vb;if(sortKey==='status'){va=STATUS_ORDER[a.status]??99;vb=STATUS_ORDER[b.status]??99;return sortDir==='asc'?va-vb:vb-va;}if(sortKey==='date'||sortKey==='naDate'){va=a[sortKey]||'9999';vb=b[sortKey]||'9999';}else{va=(a[sortKey]||'').toLowerCase();vb=(b[sortKey]||'').toLowerCase();}return va<vb?(sortDir==='asc'?-1:1):va>vb?(sortDir==='asc'?1:-1):0;});}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function dateLabel(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00'),today=new Date();today.setHours(0,0,0,0);const diff=Math.round((d-today)/86400000),lbl=`${d.getMonth()+1}/${d.getDate()}`;if(diff<0)return`<span class="date-tag overdue">⚠ ${lbl}</span>`;if(diff<=7)return`<span class="date-tag soon">${lbl} (${diff===0?'今日':diff+'日後'})</span>`;return`<span class="date-tag ok">${lbl}</span>`;}
+function dateLabelText(ds){if(!ds)return null;const d=new Date(ds+'T00:00:00'),today=new Date();today.setHours(0,0,0,0);const diff=Math.round((d-today)/86400000),lbl=`${d.getMonth()+1}/${d.getDate()}`;if(diff<0)return{text:`⚠ ${lbl}`,cls:'overdue'};if(diff<=7)return{text:`${lbl} (${diff===0?'今日':diff+'日後'})`,cls:'soon'};return{text:lbl,cls:'ok'};}
+function statusIcon(s){if(s==='進行中')return'🔵';if(s==='完了')return'✅';return'⬜';}
+function render(){renderDesktop();renderMobile();document.getElementById('stat-all').textContent=projects.length;document.getElementById('stat-progress').textContent=projects.filter(p=>p.status==='進行中').length;document.getElementById('stat-done').textContent=projects.filter(p=>p.status==='完了').length;document.getElementById('project-count').textContent=`${projects.length}件`;}
+function renderDesktop(){const list=document.getElementById('project-list-desktop');const filtered=applySortFilter(projects);if(!filtered.length){list.innerHTML=`<tr><td colspan="10"><div class="empty-state">該当するプロジェクトがありません</div></td></tr>`;return;}list.innerHTML=filtered.map((p,i)=>`<tr class="project-row${p.done?' done-row':''}" id="row-${p.id}"><td class="row-num">${i+1}</td><td class="check-cell"><input type="checkbox" ${p.done?'checked':''} onchange="toggleDone('${p.id}',this.checked)"/></td><td><textarea class="name-input${p.done?' checked':''}" rows="2" onchange="updateField('${p.id}','name',this.value)" oninput="updateField('${p.id}','name',this.value)">${esc(p.name)}</textarea></td><td><button class="status-badge ${p.status}" onclick="openStatusMenu(event,'${p.id}')">${statusIcon(p.status)} ${p.status}</button></td><td><div class="date-wrap"><input type="date" class="date-input" value="${p.date}" onchange="updateField('${p.id}','date',this.value)"/>${p.date?dateLabel(p.date):'<span style="color:#ccc;font-size:11px;">未設定</span>'}</div></td><td class="td-na-group"><input class="editable na-text" type="text" value="${esc(p.na)}" placeholder="Next Action…" oninput="updateField('${p.id}','na',this.value)" onchange="updateField('${p.id}','na',this.value)"/></td><td><input class="editable owner-text" type="text" value="${esc(p.naOwner)}" placeholder="担当者…" oninput="updateField('${p.id}','naOwner',this.value)" onchange="updateField('${p.id}','naOwner',this.value)"/></td><td><div class="date-wrap"><input type="date" class="date-input" value="${p.naDate}" onchange="updateField('${p.id}','naDate',this.value)"/>${p.naDate?dateLabel(p.naDate):'<span style="color:#ccc;font-size:11px;">未設定</span>'}</div></td><td><textarea class="editable notes-text" rows="2" placeholder="メモ…" oninput="updateField('${p.id}','notes',this.value)" onchange="updateField('${p.id}','notes',this.value)">${esc(p.notes)}</textarea></td><td style="text-align:center;"><button class="action-btn" onclick="deleteProject('${p.id}')" title="削除">✕</button></td></tr>`).join('');}
+function renderMobile(){const container=document.getElementById('project-list-mobile');const filtered=applySortFilter(projects);if(!filtered.length){container.innerHTML=`<div class="empty-state">該当するプロジェクトがありません</div>`;return;}container.innerHTML=filtered.map(p=>{const gdate=dateLabelText(p.date),nadate=dateLabelText(p.naDate);return`<div class="card${p.done?' done-row':''}"><div class="card-header"><div class="card-check"><input type="checkbox" ${p.done?'checked':''} onchange="toggleDone('${p.id}',this.checked)"/></div><div class="card-name${p.done?' checked':''}" onclick="openEditModal('${p.id}')">${esc(p.name)}</div><div class="card-actions"><button class="status-badge ${p.status}" onclick="openStatusMenu(event,'${p.id}')">${statusIcon(p.status)} ${p.status}</button><button class="card-del-btn" onclick="deleteProject('${p.id}')">✕</button></div></div><div class="card-divider"></div><div class="card-body"><div class="card-row"><span class="card-lbl">全体期日</span><span class="card-val${gdate?'':' empty'}">${gdate?`<span class="date-tag ${gdate.cls}">${esc(gdate.text)}</span>`:'未設定'}</span></div><div class="card-row"><span class="card-lbl">Next Action</span><span class="card-val na${!p.na?' empty':''}">${p.na?esc(p.na):'未入力'}</span></div>${p.naOwner||p.naDate?`<div class="card-row"><span class="card-lbl">担当 / 期日</span><span class="card-val owner">${p.naOwner?esc(p.naOwner):'—'}${nadate?` <span class="date-tag ${nadate.cls}">${esc(nadate.text)}</span>`:''}</span></div>`:''}${p.notes?`<div class="card-row"><span class="card-lbl">メモ</span><span class="card-val" style="color:#555;">${esc(p.notes)}</span></div>`:''}<div style="display:flex;justify-content:flex-end;margin-top:4px;"><button class="card-edit-btn" onclick="openEditModal('${p.id}')">✏️ 編集</button></div></div></div>`;}).join('')+`<div class="add-card" onclick="openAddModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>プロジェクトを追加</div>`;}
+window.toggleDone=function(id,checked){fsUpdate(id,{done:checked,status:checked?'完了':'未着手'});};
+window.updateField=function(id,field,val){debounce(`${id}-${field}`,()=>fsUpdate(id,{[field]:val}),field==='date'||field==='naDate'?0:900);};
+window.openStatusMenu=function(e,id){e.stopPropagation();statusTargetId=id;const sel=document.getElementById('status-selector');sel.style.display='block';const rect=e.currentTarget.getBoundingClientRect();sel.style.top=(rect.bottom+4)+'px';sel.style.left=Math.min(rect.left,window.innerWidth-140)+'px';};
+window.setStatus=function(val){if(statusTargetId)fsUpdate(statusTargetId,{status:val,done:val==='完了'});closeStatusMenu();};
+function closeStatusMenu(){document.getElementById('status-selector').style.display='none';statusTargetId=null;}
+window.deleteProject=function(id){if(!confirm('このプロジェクトを削除しますか？'))return;fsDelete(id);};
+window.openAddModal=function(){editingModalId=null;document.getElementById('modal-title').textContent='プロジェクトを追加';['m-name','m-na','m-owner','m-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('m-status').value='未着手';document.getElementById('m-date').value='';document.getElementById('m-nadate').value='';document.getElementById('modal').classList.add('open');setTimeout(()=>document.getElementById('m-name').focus(),100);};
+window.openEditModal=function(id){const p=projects.find(x=>x.id===id);if(!p)return;editingModalId=id;document.getElementById('modal-title').textContent='プロジェクトを編集';document.getElementById('m-name').value=p.name||'';document.getElementById('m-status').value=p.status||'未着手';document.getElementById('m-date').value=p.date||'';document.getElementById('m-na').value=p.na||'';document.getElementById('m-owner').value=p.naOwner||'';document.getElementById('m-nadate').value=p.naDate||'';document.getElementById('m-notes').value=p.notes||'';document.getElementById('modal').classList.add('open');setTimeout(()=>document.getElementById('m-name').focus(),100);};
+window.closeModal=function(){document.getElementById('modal').classList.remove('open');editingModalId=null;};
+window.saveModal=async function(){const name=document.getElementById('m-name').value.trim();if(!name){document.getElementById('m-name').focus();return;}const data={name,status:document.getElementById('m-status').value,date:document.getElementById('m-date').value,na:document.getElementById('m-na').value.trim(),naOwner:document.getElementById('m-owner').value.trim(),naDate:document.getElementById('m-nadate').value,notes:document.getElementById('m-notes').value.trim(),done:document.getElementById('m-status').value==='完了'};window.closeModal();if(editingModalId){await fsUpdate(editingModalId,data);}else{await fsAdd(data);}};
+window.exportJSON=function(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(projects,null,2)],{type:'application/json'}));a.download=`projects_${today()}.json`;a.click();};
+window.importJSON=function(){document.getElementById('json-file-input').value='';document.getElementById('json-file-input').click();};
+window.handleJSONFile=async function(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=async e=>{try{const data=JSON.parse(e.target.result);if(!Array.isArray(data)){alert('形式が正しくありません。');return;}if(!confirm(`${data.length}件をFirebaseに追加します。よろしいですか？`))return;for(const p of data){const{id,...d}=p;await fsAdd({name:d.name||'',status:d.status||'未着手',date:d.date||'',na:d.na||'',naOwner:d.naOwner||'',naDate:d.naDate||'',notes:d.notes||'',done:d.done||false});}}catch{alert('JSONの読み込みに失敗しました。');}};reader.readAsText(file);};
+window.exportCSV=function(){const hdr=['No','プロジェクト名','ステータス','全体期日','Next Action','担当','NA期日','メモ','完了'];const rows=projects.map((p,i)=>[i+1,`"${(p.name||'').replace(/"/g,'""')}"`,p.status,p.date,`"${(p.na||'').replace(/"/g,'""')}"`,`"${(p.naOwner||'').replace(/"/g,'""')}"`,p.naDate,`"${(p.notes||'').replace(/"/g,'""')}"`,p.done?'完了':'']);const csv='﻿'+[hdr.join(','),...rows.map(r=>r.join(','))].join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download=`projects_${today()}.csv`;a.click();};
+function today(){const d=new Date();return`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;}
+window.setFilter=setFilter;window.sortBy=sortBy;window.closeStatusMenu=closeStatusMenu;
+document.addEventListener('click',e=>{if(!document.getElementById('status-selector').contains(e.target)&&!e.target.classList.contains('status-badge'))closeStatusMenu();});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))window.closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeStatusMenu();window.closeModal();}});
+let unsubscribeSnapshot=null;
+onAuthStateChanged(auth,user=>{if(user&&ALLOWED_EMAILS.includes(user.email)){document.getElementById('login-screen').classList.remove('visible');document.getElementById('app-wrapper').classList.add('visible');if(!document.getElementById('user-info')){const info=document.createElement('div');info.id='user-info';info.style.cssText='display:flex;align-items:center;gap:8px;font-size:12px;color:#888;';info.innerHTML=`<span>${user.displayName||user.email}</span><button onclick="window.doSignOut()" style="background:none;border:0.5px solid #d0cdc5;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#888;font-family:inherit;">ログアウト</button>`;document.querySelector('.app-header').appendChild(info);}if(!unsubscribeSnapshot)startListener();}else if(user){signOut(auth);document.getElementById('login-error').classList.add('visible');document.getElementById('login-screen').classList.add('visible');document.getElementById('app-wrapper').classList.remove('visible');}else{document.getElementById('login-screen').classList.add('visible');document.getElementById('app-wrapper').classList.remove('visible');document.getElementById('login-error').classList.remove('visible');}});
+document.getElementById('btn-google-signin').addEventListener('click',async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){if(e.code!=='auth/popup-closed-by-user'){document.getElementById('login-error').textContent='ログインに失敗しました。再度お試しください。';document.getElementById('login-error').classList.add('visible');}}});
+window.doSignOut=async function(){if(unsubscribeSnapshot){unsubscribeSnapshot();unsubscribeSnapshot=null;}await signOut(auth);const info=document.getElementById('user-info');if(info)info.remove();};
+</script>
+</body>
+</html>
