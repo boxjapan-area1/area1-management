@@ -185,6 +185,8 @@ function checkAuth(){
   if(pw==='¥1103737712'){
     sessionStorage.setItem('area1_auth','ok');
     document.getElementById('auth-overlay').style.display='none';
+    // init()はFirebase認証ではなくパスワード認証後に呼ぶ
+    if(typeof init==='function') init();
   } else {
     document.getElementById('auth-error').textContent='パスワードが正しくありません';
     document.getElementById('auth-input').value='';
@@ -20867,11 +20869,9 @@ el.innerHTML = `<div class="sync-dot"></div>${label}`;
 // ── Firestore保存（デバウンス1秒） ────────────────────
 let _fsTimer = null;
 function save() {
-// ローカル保存（即時）
+// ローカル保存（即時） - Firestore不使用
 try { localStorage.setItem(LS_KEY, JSON.stringify({data, lastFile})); } catch(e) {}
-// Firestore保存（1秒デバウンス）
-clearTimeout(_fsTimer);
-_fsTimer = setTimeout(saveToFirestore, 1000);
+setSyncChip('synced', 'ローカル保存済み');
 }
 
 async function saveToFirestore() {
@@ -20910,55 +20910,25 @@ return true;
 return false;
 }
 
-// ── init()を上書き（Firestore優先） ──────────────────
+// ── init()を上書き（localStorage優先・Firestore不使用） ──────────────────
 function init() {
-setSyncChip('saving', '接続中…');
-loadFromFirestore().then(loaded => {
-if (!loaded) {
-// Firestoreに未保存 → ローカルまたはデフォルト
+setSyncChip('saving', '読み込み中…');
 try {
 Object.keys(localStorage).filter(k=>k.startsWith('fy27')).forEach(k=>{if(k!==LS_KEY)localStorage.removeItem(k);});
 const s = localStorage.getItem(LS_KEY);
 if (s) { const p = JSON.parse(s); data = p.data; lastFile = p.lastFile || null; fillDefaults(data); }
 else { data = clone(INITIAL_DATA); fillDefaults(data); }
 } catch(e) { data = clone(INITIAL_DATA); fillDefaults(data); }
-// 初回データをFirestoreに保存
-saveToFirestore();
-} else {
-setSyncChip('synced', 'Firebase同期中');
-}
+setSyncChip('synced', 'ローカル保存済み');
 renderAll();
-});
 }
 
-// ── Google認証フロー ──────────────────────────────────
-function doSignOut() {
-_auth.signOut();
+// ── パスワード認証フロー（Google認証廃止） ──────────────────
+// sessionStorageに認証情報がある場合はそのままinit()
+// （checkAuth()からinit()を呼ぶ設計なので、ここではセッション継続時のみ対応）
+if(sessionStorage.getItem('area1_auth')==='ok') {
+  init();
 }
-
-_auth.onAuthStateChanged(user => {
-if (user && ALLOWED_EMAILS.includes(user.email)) {
-document.getElementById('login-screen').classList.remove('visible');
-document.getElementById('btn-signout').style.display = '';
-init();
-} else if (user) {
-_auth.signOut();
-document.getElementById('login-error').classList.add('visible');
-document.getElementById('login-screen').classList.add('visible');
-} else {
-document.getElementById('login-screen').classList.add('visible');
-document.getElementById('login-error').classList.remove('visible');
-}
-});
-
-document.getElementById('btn-google-signin').addEventListener('click', () => {
-_auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => {
-if (e.code !== 'auth/popup-closed-by-user') {
-document.getElementById('login-error').textContent = 'ログインに失敗しました。再度お試しください。';
-document.getElementById('login-error').classList.add('visible');
-}
-});
-});
 </script>
 </body>
 </html>
