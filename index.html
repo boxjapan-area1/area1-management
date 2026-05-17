@@ -293,8 +293,9 @@ const DEFAULT_PROJECTS=[
 ];
 let projects=[],currentFilter='all',statusTargetId=null,editingModalId=null,sortKey=null,sortDir='asc';
 const STATUS_ORDER={'進行中':0,'未着手':1,'完了':2};
-function startListener(){setSyncBadge('saving','接続中…');const q=query(COLL,orderBy('createdAt','asc'));unsubscribeSnapshot=onSnapshot(q,snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));if(projects.length===0)seedDefaults();setSyncBadge('notion','Firebase同期中');render();},err=>{setSyncBadge('error','接続失敗');console.error(err);});}
-async function seedDefaults(){for(const p of DEFAULT_PROJECTS){const{id,...data}=p;await addDoc(COLL,{...data,createdAt:serverTimestamp()});}}
+function startListener(){setSyncBadge('saving','接続中…');const q=query(COLL,orderBy('createdAt','asc'));unsubscribeSnapshot=onSnapshot(q,snap=>{projects=snap.docs.map(d=>({id:d.id,...d.data()}));setSyncBadge('notion','Firebase同期中');render();},err=>{setSyncBadge('error','接続失敗');console.error(err);});}
+// seedDefaults()は廃止（重複追加の原因のため削除）
+async function seedDefaults(){console.warn('seedDefaults: 無効化済み（重複防止）');}
 async function fsUpdate(id,data){setSyncBadge('saving','保存中…');try{await updateDoc(doc(db,'projects',id),data);setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','保存失敗');}}
 async function fsDelete(id){setSyncBadge('saving','削除中…');try{await deleteDoc(doc(db,'projects',id));setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','削除失敗');}}
 async function fsAdd(data){setSyncBadge('saving','保存中…');try{await addDoc(COLL,{...data,createdAt:serverTimestamp()});setSyncBadge('notion','Firebase同期中');}catch(e){setSyncBadge('error','保存失敗');}}
