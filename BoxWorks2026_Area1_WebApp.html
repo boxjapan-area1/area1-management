@@ -175,6 +175,58 @@
   #auth-error{color:#c62828;font-size:12px;margin-top:10px;display:none;font-weight:600;}
   #app-wrap{display:none;}
 
+
+  /* ===== CIO KANBAN ===== */
+  .cio-kanban-wrap{display:none;width:100%;overflow-x:auto;padding:12px 0;}
+  .cio-kanban-cols{display:flex;gap:14px;min-width:max-content;align-items:flex-start;}
+  .cio-col{background:#fff;border-radius:12px;width:260px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden;}
+  .cio-col-header{padding:12px 14px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;}
+  .cio-col-name{font-weight:700;font-size:.95rem;}
+  .cio-col-badges{display:flex;gap:4px;flex-wrap:wrap;}
+  .cio-b{border-radius:10px;padding:1px 7px;font-size:.72rem;font-weight:700;background:rgba(255,255,255,.25);color:#fff;}
+  .cio-b.b-sanka{background:#27ae60;}
+  .cio-b.b-ng{background:#c0392b;}
+  .cio-b.b-annai{background:#2980b9;}
+  .cio-b.b-kaito{background:#d35400;}
+  .cio-b.b-miannai{background:#7f8c8d;}
+  .cio-b.b-sonota{background:#8e44ad;}
+  .cio-col-body{padding:10px;}
+  .cio-sec{margin-bottom:10px;}
+  .cio-sec-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 6px;border-radius:4px;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+  .cio-sec-title.st-sanka{background:#e8f8f0;color:#1e8449;}
+  .cio-sec-title.st-ng{background:#fde8e8;color:#c0392b;}
+  .cio-sec-title.st-annai{background:#e8f4fd;color:#1f6391;}
+  .cio-sec-title.st-kaito{background:#fef0e6;color:#a04000;}
+  .cio-sec-title.st-miannai{background:#f2f3f4;color:#5d6d7e;}
+  .cio-sec-title.st-sonota{background:#f5eef8;color:#6c3483;}
+  .cio-card{background:#f8f9fa;border-radius:7px;padding:7px 10px;margin-bottom:5px;cursor:pointer;transition:box-shadow .15s,transform .1s;border-left:3px solid transparent;}
+  .cio-card:hover{box-shadow:0 3px 10px rgba(0,0,0,.15);transform:translateY(-1px);}
+  .cio-card.c-sanka{border-color:#27ae60;}
+  .cio-card.c-ng{border-color:#c0392b;opacity:.8;}
+  .cio-card.c-annai{border-color:#2980b9;}
+  .cio-card.c-kaito{border-color:#e67e22;}
+  .cio-card.c-miannai{border-color:#95a5a6;}
+  .cio-card.c-sonota{border-color:#8e44ad;}
+  .cio-card-name{font-size:.82rem;font-weight:600;color:#2c3e50;line-height:1.3;}
+  .cio-card-meta{font-size:.7rem;color:#7f8c8d;margin-top:2px;word-break:break-all;}
+  .cio-kpi-bar{display:flex;gap:10px;flex-wrap:wrap;padding:10px 0;}
+  .cio-kpi-card{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;cursor:pointer;transition:opacity .15s,transform .1s;border:2px solid transparent;min-width:130px;}
+  .cio-kpi-card:hover{opacity:.85;transform:scale(1.02);}
+  .cio-kpi-card.active{border-color:rgba(0,0,0,.3);}
+  .cio-kpi-n{font-size:1.8rem;font-weight:800;line-height:1;}
+  .cio-kpi-l{font-size:.75rem;font-weight:600;opacity:.9;}
+  .ck-sanka{background:#e8f8f0;color:#1e8449;}
+  .ck-ng{background:#fde8e8;color:#c0392b;}
+  .ck-annai{background:#e8f4fd;color:#1f6391;}
+  .ck-kaito{background:#fef0e6;color:#a04000;}
+  .ck-miannai{background:#f2f3f4;color:#5d6d7e;}
+  .ck-sonota{background:#f5eef8;color:#6c3483;}
+  .cio-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 0 4px;}
+  .cio-rep-chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .cio-chip{background:#ecf0f1;border:1px solid #bdc3c7;border-radius:16px;padding:3px 12px;font-size:.78rem;cursor:pointer;transition:all .15s;}
+  .cio-chip:hover,.cio-chip.active{background:var(--cio);color:#fff;border-color:var(--cio);}
+  .cio-memo-tip{font-size:.68rem;color:#95a5a6;font-style:italic;margin-top:2px;}
+  #cio-search{border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:.82rem;width:180px;}
 </style>
 </head>
 <body>
@@ -222,7 +274,7 @@
     <span class="import-status" id="import-status"></span>
     <span class="last-update" id="last-update">最終更新: 2026/05/16 02:31</span>
   </div>
-  <div class="filter-bar" id="filter-bar">
+  <div class="filter-bar" id="filter-wrap">
     <label>🔍 担当営業</label>
     <select id="rep-sel" onchange="applyFilters()"><option value="">全員</option></select>
     <div id="part-filter-wrap"></div>
@@ -233,13 +285,49 @@
     <span class="filter-count" id="filter-count"></span>
   </div>
   <div class="tab-bar" id="tab-bar"></div>
-  <div class="table-wrap">
+  <div class="table-wrap" id="table-wrap">
     <table id="main-table">
       <thead id="table-head"></thead>
       <tbody id="table-body"></tbody>
     </table>
   </div>
 </div>
+
+<!-- ===== CIO KANBAN CONTAINER ===== -->
+<div id="cio-kanban-wrap" style="display:none;padding:0 0 20px;">
+  <div class="container" style="max-width:none;">
+    <div id="cio-kpi-bar" class="cio-kpi-bar"></div>
+    <div class="json-toolbar">
+      <span class="toolbar-label">📥 JSON</span>
+      <label class="btn btn-success" style="cursor:pointer;">
+        ⬆ インポート
+        <input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+      </label>
+      <button class="btn btn-outline" onclick="exportJSON()">⬇ エクスポート</button>
+      <span class="last-update" id="cio-last-update">最終更新: 2026/05/22</span>
+    </div>
+    <div class="cio-filter-row">
+      <label style="font-size:.82rem;color:#555;font-weight:600;">担当</label>
+      <div class="cio-rep-chips" id="cio-rep-chips"></div>
+      <label style="font-size:.82rem;color:#555;font-weight:600;margin-left:8px;">ステータス</label>
+      <select id="cio-status-sel" onchange="cioStatusFilter=this.value;renderCIOKPIBar();renderCIOKanban();" style="border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:.82rem;">
+        <option value="">全て</option>
+        <option value="参加">✅ 参加</option>
+        <option value="NG">❌ NG</option>
+        <option value="案内予定">📅 案内予定</option>
+        <option value="回答待ち">⏳ 回答待ち</option>
+        <option value="未案内">📩 未案内</option>
+        <option value="その他">📌 その他</option>
+      </select>
+      <label style="font-size:.82rem;color:#555;font-weight:600;margin-left:8px;">会社名</label>
+      <input id="cio-search" type="text" placeholder="絞り込み…" oninput="renderCIOKanban()">
+    </div>
+    <div class="cio-kanban-wrap">
+      <div class="cio-kanban-cols" id="cio-kanban-cols"></div>
+    </div>
+  </div>
+</div>
+<!-- ===== END CIO KANBAN CONTAINER ===== -->
 
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal-inner">
@@ -288,6 +376,9 @@ const DATA = {
   cio: JSON.parse(JSON.stringify(EVENTS.cio.raw))
 };
 
+
+const CIO_KANBAN = [{"owner_en":"Osumi Kentaro","owner_jp":"大住 健太郎","cats":{"参加":[{"account":"Kaneka Corporation","cco":"参加","accountType":"Enterprise Plus","memo":"案件レビュー"},{"account":"NORITZ CORPORATION","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"NIPPON SHOKUBAI CO., LTD.","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"Nipro Corporation","cco":"参加","accountType":"Business Plus","memo":""},{"account":"SG SYSTEMS CO.,LTD.","cco":"参加","accountType":"Business Plus","memo":""},{"account":"MURATA MACHINERY,LTD.","cco":"参加","accountType":"Business Plus","memo":""},{"account":"Daiwa House Industry Co., Ltd.","cco":"参加","accountType":"","memo":""},{"account":"Nidec Corporation","cco":"参加","accountType":"","memo":""},{"account":"OMRON Corporation","cco":"参加","accountType":"","memo":""}],"NG":[{"account":"Daio Paper Corporation","cco":"NG（荻野部長案内済みにてNG回答）","accountType":"Business Plus","memo":""},{"account":"SHIKOKU RAILWAY COMPANY, THE","cco":"NG","accountType":"","memo":""},{"account":"YANMAR POWER TECHNOLOGY CO., LTD.","cco":"NG","accountType":"","memo":""}],"案内予定":[{"account":"MIURA CO., LTD.","cco":"案内予定（2026/05/22）","accountType":"Enterprise","memo":""},{"account":"TSUBAKIMOTO CHAIN CO.","cco":"案内予定（2026/05/13）","accountType":"","memo":""},{"account":"YANMAR HOLDINGS CO.,LTD.","cco":"案内予定（2026/05/27）","accountType":"","memo":""}],"回答待ち":[{"account":"Nichia Corporation","cco":"回答待ち（5/22面談で再度打診）","accountType":"","memo":""}],"未案内":[{"account":"CHUGOKU LUMBER CO.,LTD.","cco":"未案内（OBRとアポ打診中）","accountType":"","memo":""},{"account":"Daiwa Lease Co., Ltd.","cco":"未案内（山中部長アポ打診予定。日程未確定）","accountType":"","memo":""},{"account":"FUJI SEAL INTERNATIONAL,INC.","cco":"未案内（伊藤課長経由で案内予定。日程未確定）","accountType":"","memo":""},{"account":"GS YUASA INTERNATIONAL LTD.","cco":"未案内（OBR連携し、上期バタついており、下期でのアポと言われている）","accountType":"","memo":""},{"account":"NIHON SHOKKEN HOLDINGS CO., LTD.","cco":"未案内（OBR連携しアポ取得に動く）","accountType":"","memo":""},{"account":"Nitto Denko Corporation","cco":"未案内（OBR連携しアポ取得に動く）","accountType":"","memo":""},{"account":"ShinMaywa Industries, Ltd.","cco":"未案内（引継ぎタイミングで案内想定）","accountType":"","memo":""},{"account":"AIGURAN, K.K.","cco":"未案内（OBRと連携しアポ取得に動く）","accountType":"","memo":""}],"その他":[{"account":"KOBE STEEL, LTD.","cco":"その他（担当レベルには案内しているが、直接IT企画部長の中尾様へ案内できていない）","accountType":"Enterprise","memo":""},{"account":"ROHM CO., LTD.","cco":"その他（渡辺部長はNG回答だが、インフラ統括課長真木課長に再度案内予定。中原センタ長に案内済み）","accountType":"Business Plus","memo":""}]}},{"owner_en":"Shimazu Sakiko","owner_jp":"嶋津 早希子","cats":{"参加":[{"account":"FOREST HOLDINGS INC.","cco":"参加","accountType":"Enterprise Plus","memo":"進捗確認"},{"account":"IMURAYA K.K.","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"NISSHA CO.,LTD.","cco":"参加","accountType":"Enterprise","memo":""},{"account":"MANDOM CORPORATION","cco":"参加","accountType":"","memo":""}],"NG":[{"account":"NDS CO.,LTD.","cco":"NG","accountType":"Enterprise","memo":""}],"案内予定":[{"account":"HIRATA CORPORATION","cco":"案内予定（2026/05/28）","accountType":"Enterprise Plus","memo":""}],"回答待ち":[{"account":"KINTETSU REAL ESTATE CO.,LTD.","cco":"回答待ち","accountType":"Enterprise","memo":""},{"account":"TECHNO ASSOCIE CO., LTD.","cco":"回答待ち","accountType":"Enterprise","memo":""},{"account":"HIROSHIMA ALUMINUM INDUSTRY CO.,LTD.","cco":"回答待ち","accountType":"Business Plus","memo":""}],"未案内":[{"account":"Kwansei Gakuin University","cco":"未案内","accountType":"Enterprise Plus","memo":""},{"account":"WEST JAPAN RAILWAY DAILY SERVICE NET CO.,LTD.","cco":"未案内","accountType":"Enterprise Plus","memo":""},{"account":"FURUNO ELECTRIC CO., LTD.","cco":"未案内","accountType":"Enterprise","memo":""},{"account":"KANSAI PAINT CO., LTD.","cco":"未案内","accountType":"Business Plus","memo":""},{"account":"Sakata Inx Corporation","cco":"未案内","accountType":"Business Plus","memo":""}],"その他":[]}},{"owner_en":"Kawashima Yuki","owner_jp":"川島 有貴","cats":{"参加":[{"account":"HANSHIN EXPRESSWAY R&D CO.,LTD.","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"DAISUE CONSTRUCTION CO., LTD.","cco":"参加","accountType":"Enterprise Plus","memo":"提案したい"},{"account":"NISSEI COMPANY, LTD.","cco":"参加","accountType":"","memo":""},{"account":"NISSEI CORPORATION","cco":"参加","accountType":"","memo":""}],"NG":[{"account":"TAZMO CO.,LTD.","cco":"NG（岡山で遠方のため）","accountType":"Enterprise Plus","memo":""},{"account":"Yaskawa Automation & Drives Corp.","cco":"NG（東京、かつ親会社よりAI利用制限がありBox AI利用不可でUpgradeのハードルが高い）","accountType":"Enterprise","memo":""},{"account":"C.I. TAKIRON CORPORATION","cco":"NG（情シス主要メンバーが東京在住）","accountType":"Enterprise","memo":"Next切らないと"}],"案内予定":[],"回答待ち":[],"未案内":[{"account":"YANMAR ENERGY SYSTEM CO.,LTD.","cco":"未案内（まだ接点持てていない）","accountType":"Enterprise","memo":""},{"account":"H2O RETAILING CORPORATION","cco":"未案内（まだ接点持てていない）","accountType":"Business Plus","memo":""}],"その他":[]}},{"owner_en":"Matsunaga Yui","owner_jp":"松永 祐依","cats":{"参加":[{"account":"TOYOBO CO., LTD.","cco":"参加","accountType":"Enterprise Advanced","memo":""},{"account":"Sekisui House, Ltd.","cco":"参加","accountType":"Enterprise Plus","memo":"要 Drive"},{"account":"KONOIKE TRANSPORT CO.,LTD.","cco":"参加","accountType":"Enterprise Plus","memo":"Upgrade案件推進"},{"account":"I-PEX Inc.","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"TAKARA STANDARD CO., LTD.","cco":"参加","accountType":"Enterprise","memo":""},{"account":"AI-KOUMUTEN, K.K.","cco":"参加","accountType":"Business","memo":"3/6 セキュリティ軸でBusPlusを提案するがコスト面でReject"},{"account":"OKUMURA CORPORATION","cco":"参加","accountType":"","memo":""}],"NG":[],"案内予定":[],"回答待ち":[{"account":"INOAC CORPORATION","cco":"回答待ち","accountType":"Enterprise","memo":"三輪様カバーも必要"},{"account":"Jatco Ltd.","cco":"回答待ち","accountType":"","memo":""},{"account":"SCREEN Holdings Co., Ltd.","cco":"回答待ち","accountType":"","memo":""},{"account":"ZENRIN CO., LTD.","cco":"回答待ち","accountType":"","memo":""}],"未案内":[{"account":"MURATA MANUFACTURING CO.,LTD.","cco":"未案内","accountType":"Enterprise Plus","memo":"要フォロー"},{"account":"RINNAI CORPORATION","cco":"未案内","accountType":"Enterprise Plus","memo":""},{"account":"BROTHER INDUSTRIES, LTD.","cco":"未案内","accountType":"Enterprise","memo":""},{"account":"WACOAL CORP.","cco":"未案内","accountType":"Enterprise","memo":"5月中旬以降で連絡"},{"account":"WATAKYU SEIMOA CO.,LTD.","cco":"未案内","accountType":"Business Plus","memo":"商談：26年9月 更新タイミング"},{"account":"Makita Corporation","cco":"未案内","accountType":"","memo":""},{"account":"NGK INSULATORS, LTD.","cco":"未案内","accountType":"","memo":""},{"account":"NISSIN HEALTHCARE FOOD SERVICE CO., LTD.","cco":"未案内","accountType":"","memo":""},{"account":"PALOMA CO.,LTD.","cco":"未案内","accountType":"","memo":""},{"account":"TOTEC AMENITY LIMITED","cco":"未案内","accountType":"","memo":""},{"account":"Yamaha Corporation","cco":"未案内","accountType":"","memo":""},{"account":"YAMAZAKI MAZAK CORPORATION","cco":"未案内","accountType":"","memo":""}],"その他":[{"account":"NISHIO RENT ALL CO.,LTD.","cco":"X","accountType":"Enterprise Advanced","memo":"展開支援"},{"account":"Hamamatsu Photonics K.K.","cco":"その他（東京を案内）","accountType":"Enterprise Plus","memo":"展開支援"},{"account":"Daikin Industries, Ltd.","cco":"その他（登壇者）","accountType":"Business Plus","memo":"要：廣瀬様 カバー"},{"account":"YAMASHITA CORPORATION CO.,LTD.","cco":"その他（活動対象外）","accountType":"","memo":""}]}},{"owner_en":"Sakurai Akio","owner_jp":"桜井 章雄","cats":{"参加":[{"account":"Kanadevia Corporation","cco":"参加","accountType":"Enterprise Plus","memo":"担当者に行く必要あり"},{"account":"KROSAKI HARIMA CORPORATION","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"Daicel Corporation","cco":"参加","accountType":"","memo":""},{"account":"Osaka University","cco":"参加","accountType":"","memo":""},{"account":"SYSMEX CORPORATION","cco":"参加","accountType":"","memo":""},{"account":"Josho Gakuen Educational Foundation","cco":"参加","accountType":"","memo":""}],"NG":[],"案内予定":[{"account":"KANDEN ENGINEERING CO., LTD.","cco":"案内予定（2026/05/29）","accountType":"Enterprise","memo":""},{"account":"TOTO LTD.","cco":"案内予定（2026/06/01）","accountType":"Business Plus","memo":""},{"account":"GLORY LTD.","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"KANDEN CS FORUM INC.","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"KANDEN FACILITIES CO., LTD.","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"KANDEN POWER-TECH CORPORATION","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"KANDEN SERVICE CO., INC., THE","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"Keyence Corporation","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"Kyoto University","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"MITSUI HIGH-TEC,INC.","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"RENGO CO., LTD.","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"RITSUMEIKAN TRUST, THE","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"Ritsumeikan University","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"SKY CO.,LTD.","cco":"案内予定（2026/05/26）","accountType":"","memo":""},{"account":"SOGO MEDICAL CO., LTD.","cco":"案内予定（2026/05/21）","accountType":"","memo":""},{"account":"STNET, INCORPORATED","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"YONDEN BUSINESS CO.,INC.","cco":"案内予定（2026/05/29）","accountType":"","memo":""},{"account":"YONDENKO CORPORATION","cco":"案内予定（2026/05/29）","accountType":"","memo":""}],"回答待ち":[{"account":"KURARAY CO., LTD.","cco":"回答待ち（高原部長、西山部長に参加可否確認）","accountType":"Enterprise Plus","memo":""},{"account":"OPTAGE INC.","cco":"回答待ち（平井部長に参加可否確認）","accountType":"Enterprise Plus","memo":"担当=平井部長"},{"account":"YONDEN ENGINEERING CO.,INC.","cco":"回答待ち（増田様、吉田様に参加可否確認）","accountType":"Enterprise Plus","memo":""},{"account":"Fukuoka University","cco":"回答待ち","accountType":"Business Plus","memo":""},{"account":"KAMIGUMI CO., LTD.","cco":"回答待ち","accountType":"","memo":""},{"account":"KANDEN PLANT CORPORATION","cco":"回答待ち（安達様、頓田様に参加可否確認）","accountType":"","memo":""},{"account":"Kansai Electrical Safety Inspection Association","cco":"回答待ち（長舩様、仲下様に参加可否確認）","accountType":"","memo":""},{"account":"NATIONAL UNIVERSITY CORPORATION KOBE UNIVERSITY","cco":"回答待ち（大川様に参加可否確認）","accountType":"","memo":""},{"account":"KOBE UNIVERSITY","cco":"回答待ち（大川様に参加可否確認）","accountType":"","memo":""}],"未案内":[{"account":"OKAYAMA UNIVERSITY","cco":"未案内（アポ取得できたら案内）","accountType":"","memo":""},{"account":"Toyama University Hospital","cco":"未案内（接点なし。アポ取得できれば案内）","accountType":"","memo":""},{"account":"UNIVERSITY OF TOKUSHIMA, THE","cco":"未案内（林様にアポ取得できれば案内）","accountType":"","memo":""},{"account":"UNIVERSITY OF TOYAMA","cco":"未案内（接点なし。アポ取得できれば案内）","accountType":"","memo":""},{"account":"Yaskawa Electric Corporation","cco":"未案内（接点なし。アポ取得できれば案内）","accountType":"","memo":""},{"account":"JAPAN EDUCATIONAL FOUNDATION","cco":"未案内（接点なし）","accountType":"","memo":""}],"その他":[{"account":"KANDEN JOY LIFE CO., LTD.","cco":"その他（ALSOKに買収）","accountType":"","memo":""}]}},{"owner_en":"Moriki Yuta","owner_jp":"森木 勇太","cats":{"参加":[],"NG":[{"account":"ESPEC CORP.","cco":"NG","accountType":"Enterprise Plus","memo":""},{"account":"MEIKO CONSTRUCTION CO., LTD.","cco":"NG","accountType":"Enterprise","memo":"Next切らないと"},{"account":"FUJICCO CO., LTD.","cco":"NG","accountType":"Enterprise","memo":"近田部長以外に"},{"account":"AIPHONE CO., LTD.","cco":"NG","accountType":"Business Plus","memo":""}],"案内予定":[{"account":"INABA DENKISANGYO CO., LTD.","cco":"案内予定（2026/05/13）","accountType":"Enterprise Plus","memo":""}],"回答待ち":[],"未案内":[{"account":"YAMAZEN CORPORATION","cco":"未案内","accountType":"Enterprise Plus","memo":""}],"その他":[]}},{"owner_en":"Suga Kazuki","owner_jp":"菅 和樹","cats":{"参加":[{"account":"West Japan Railway Company","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"Sumitomo Rubber Industries, Ltd.","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"PANASONIC HOMES CO., LTD.","cco":"参加","accountType":"Enterprise Plus","memo":""},{"account":"Okinawa Electric Power Company, Incorporated","cco":"参加","accountType":"Enterprise Plus","memo":"進捗確認"},{"account":"NTT WEST, Inc.","cco":"参加","accountType":"","memo":""},{"account":"Sumitomo Electric Industries, Ltd.","cco":"参加","accountType":"","memo":""},{"account":"SUMITOMO RIKO COMPANY LIMITED","cco":"参加","accountType":"","memo":""},{"account":"Sumitomo Wiring Systems, Ltd.","cco":"参加","accountType":"","memo":""}],"NG":[],"案内予定":[],"回答待ち":[],"未案内":[],"その他":[]}}];
+let cioRepFilter = ""; let cioStatusFilter = "";
 let currentEvent = 'tokyo';
 let sortKey = 'owner_jp';
 let sortAsc = true;
@@ -322,14 +413,176 @@ function switchEvent(evt){
   document.getElementById('tab-cio').className = 'event-tab'+(evt==='cio'?' active-cio':'');
   document.getElementById('modal-inner').className = 'modal ev-'+evt;
   sortKey='owner_jp'; sortAsc=true;
-  renderKPIBar(evt);
-  renderTableHead(evt);
-  renderPartFilter(evt);
-  buildAtFilter();
-  buildTabs();
-  applyFilters();
+  if(evt==='cio'){
+    document.getElementById('filter-wrap').style.display='none';
+    document.getElementById('table-wrap').style.display='none';
+    document.getElementById('cio-kanban-wrap').style.display='block';
+    cioRepFilter=''; cioStatusFilter='';
+    renderCIOKPIBar();
+    renderCIORepChips();
+    renderCIOKanban();
+  } else {
+    document.getElementById('filter-wrap').style.display='';
+    document.getElementById('table-wrap').style.display='';
+    document.getElementById('cio-kanban-wrap').style.display='none';
+    renderKPIBar(evt);
+    renderTableHead(evt);
+    renderPartFilter(evt);
+    buildAtFilter();
+    buildTabs();
+    applyFilters();
+  }
 }
 
+
+// ===== CIO KANBAN FUNCTIONS =====
+const CIO_STATUS_ORDER = ['参加','NG','案内予定','回答待ち','未案内','その他'];
+const CIO_STATUS_CLS = {'参加':'sanka','NG':'ng','案内予定':'annai','回答待ち':'kaito','未案内':'miannai','その他':'sonota'};
+const CIO_STATUS_ICON = {'参加':'✅','NG':'❌','案内予定':'📅','回答待ち':'⏳','未案内':'📩','その他':'📌'};
+
+function getCIOStats(ownerData){
+  const s={};
+  CIO_STATUS_ORDER.forEach(k=>{s[k]=ownerData.cats[k]?ownerData.cats[k].length:0;});
+  return s;
+}
+
+function renderCIOKPIBar(){
+  const allStats={'参加':0,'NG':0,'案内予定':0,'回答待ち':0,'未案内':0,'その他':0};
+  CIO_KANBAN.forEach(o=>{
+    CIO_STATUS_ORDER.forEach(k=>{allStats[k]+=(o.cats[k]||[]).length;});
+  });
+  const bar=document.getElementById('cio-kpi-bar');
+  const labels={'参加':'参加企業','NG':'NG','案内予定':'案内予定','回答待ち':'回答待ち','未案内':'未案内','その他':'その他'};
+  bar.innerHTML=CIO_STATUS_ORDER.map(k=>{
+    const cls=CIO_STATUS_CLS[k];
+    const active=cioStatusFilter===k?' active':'';
+    return `<div class="cio-kpi-card ck-${cls}${active}" onclick="filterCIOStatus('${k}')">
+      <div>
+        <div class="cio-kpi-n">${allStats[k]}</div>
+        <div class="cio-kpi-l">${CIO_STATUS_ICON[k]} ${labels[k]}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCIOStatus(status){
+  cioStatusFilter=(cioStatusFilter===status)?'':status;
+  const sel=document.getElementById('cio-status-sel');
+  if(sel) sel.value=cioStatusFilter;
+  renderCIOKPIBar();
+  renderCIOKanban();
+}
+
+function renderCIORepChips(){
+  const chips=document.getElementById('cio-rep-chips');
+  chips.innerHTML='<div class="cio-chip active" onclick="filterCIORep(\'\')">全員</div>'
+    +CIO_KANBAN.map(o=>`<div class="cio-chip" onclick="filterCIORep('${o.owner_en}')">${o.owner_jp}</div>`).join('');
+}
+
+function filterCIORep(ownerEn){
+  cioRepFilter=ownerEn;
+  document.querySelectorAll('.cio-chip').forEach(c=>{c.classList.remove('active');});
+  const all=document.querySelectorAll('.cio-chip')[0];
+  if(!ownerEn){all.classList.add('active');}
+  else{
+    const chips=[...document.querySelectorAll('.cio-chip')];
+    const t=chips.find(c=>c.getAttribute('onclick')===`filterCIORep('${ownerEn}')`);
+    if(t)t.classList.add('active');
+  }
+  renderCIOKanban();
+}
+
+function renderCIOKanban(){
+  const search=(document.getElementById('cio-search')||{value:''}).value.toLowerCase();
+  const container=document.getElementById('cio-kanban-cols');
+  let html='';
+
+  const owners=cioRepFilter?CIO_KANBAN.filter(o=>o.owner_en===cioRepFilter):CIO_KANBAN;
+
+  owners.forEach(owner=>{
+    const repCol=repColor(owner.owner_jp);
+    // ステータスバッジ
+    const stats=getCIOStats(owner);
+    const badgesHtml=CIO_STATUS_ORDER.filter(k=>stats[k]>0).map(k=>{
+      const cls=CIO_STATUS_CLS[k];
+      return `<span class="cio-b b-${cls}">${CIO_STATUS_ICON[k]}${stats[k]}</span>`;
+    }).join('');
+
+    // カラム内セクション
+    let secHtml='';
+    CIO_STATUS_ORDER.forEach(k=>{
+      if(cioStatusFilter && k!==cioStatusFilter) return;
+      const items=(owner.cats[k]||[]).filter(item=>!search||item.account.toLowerCase().includes(search));
+      if(!items.length) return;
+      const cls=CIO_STATUS_CLS[k];
+      secHtml+=`<div class="cio-sec">
+        <div class="cio-sec-title st-${cls}">${CIO_STATUS_ICON[k]} ${k} <span style="opacity:.7;font-weight:400;">(${items.length})</span></div>`;
+      items.forEach(item=>{
+        // cco詳細（カッコ内説明）を抽出
+        let tipStr='';
+        if(item.cco && item.cco!==k){
+          const m=item.cco.match(/[（(](.+)[）)]/);
+          if(m) tipStr+=`<div class="cio-memo-tip">📝 ${m[1]}</div>`;
+        }
+        if(item.memo) tipStr+=`<div class="cio-memo-tip" style="color:#7f8c8d;">${item.memo}</div>`;
+        const atBadge=item.accountType?`<span style="font-size:.65rem;background:#eef2ff;color:#4f46e5;border-radius:4px;padding:1px 5px;margin-top:3px;display:inline-block;">${item.accountType}</span>`:'';
+        const modalData=JSON.stringify({account:item.account,cco:item.cco,owner_jp:owner.owner_jp,memo:item.memo||'',accountType:item.accountType||''}).replace(/"/g,'&quot;');
+        secHtml+=`<div class="cio-card c-${cls}" onclick="openCIOModal(${modalData})">
+          <div class="cio-card-name">${item.account}</div>
+          ${atBadge}
+          ${tipStr}
+        </div>`;
+      });
+      secHtml+='</div>';
+    });
+
+    if(!secHtml && (cioStatusFilter||search)) return; // 絞り込み結果が空のカラムは非表示
+
+    html+=`<div class="cio-col">
+      <div class="cio-col-header" style="background:${repCol};">
+        <span class="cio-col-name">${owner.owner_jp}</span>
+        <div class="cio-col-badges">${badgesHtml}</div>
+      </div>
+      <div class="cio-col-body">${secHtml||'<div style="color:#aaa;font-size:.8rem;padding:8px;">表示対象なし</div>'}</div>
+    </div>`;
+  });
+
+  container.innerHTML=html||'<div style="padding:20px;color:#aaa;">データなし</div>';
+}
+
+function openCIOModal(data){
+  const inner=document.getElementById('modal-inner');
+  const modal=document.getElementById('modal');
+  const cls=CIO_STATUS_CLS[getCIOCat(data.cco)]||'sonota';
+  const memoHtml=data.memo?`<div style="margin-top:10px;background:#fffde7;border-radius:6px;padding:8px 12px;font-size:.82rem;color:#555;"><b>メモ:</b> ${data.memo}</div>`:'';
+  const atHtml=data.accountType?`<div style="margin-top:6px;"><span style="font-size:.75rem;background:#eef2ff;color:#4f46e5;border-radius:4px;padding:2px 8px;">${data.accountType}</span></div>`:'';
+  inner.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <div style="font-size:1.05rem;font-weight:700;line-height:1.3;">${data.account}</div>
+        <div style="font-size:.83rem;color:#7f8c8d;margin-top:3px;">担当: ${data.owner_jp}</div>
+      </div>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#95a5a6;padding:0 4px;">✕</button>
+    </div>
+    ${atHtml}
+    <div style="background:#f8f9fa;border-radius:8px;padding:10px 14px;margin-top:8px;">
+      <div style="font-size:.75rem;color:#7f8c8d;margin-bottom:5px;">CIO Connect ステータス</div>
+      <div class="cio-sec-title st-${cls}" style="display:inline-flex;">${CIO_STATUS_ICON[getCIOCat(data.cco)]} ${data.cco||'—'}</div>
+    </div>
+    ${memoHtml}`;
+  modal.style.display='flex';
+}
+
+function getCIOCat(cco){
+  if(!cco||cco==='') return 'その他';
+  if(cco==='参加') return '参加';
+  if(cco.startsWith('NG')) return 'NG';
+  if(cco.startsWith('案内予定')) return '案内予定';
+  if(cco.startsWith('回答待ち')) return '回答待ち';
+  if(cco.startsWith('未案内')) return '未案内';
+  return 'その他';
+}
+// ===== END CIO KANBAN =====
 function renderKPIBar(evt){
   const d=DATA[evt];
   const companies=d.length;
