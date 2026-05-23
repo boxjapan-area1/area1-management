@@ -177,7 +177,7 @@
 
 
   /* ===== CIO KANBAN ===== */
-  .cio-kanban-wrap{display:none;width:100%;overflow-x:auto;padding:12px 0;}
+  .cio-kanban-wrap{display:block;width:100%;overflow-x:auto;padding:12px 0;}
   .cio-kanban-cols{display:flex;gap:14px;min-width:max-content;align-items:flex-start;}
   .cio-col{background:#fff;border-radius:12px;width:260px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden;}
   .cio-col-header{padding:12px 14px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;}
@@ -322,7 +322,7 @@
       <label style="font-size:.82rem;color:#555;font-weight:600;margin-left:8px;">会社名</label>
       <input id="cio-search" type="text" placeholder="絞り込み…" oninput="renderCIOKanban()">
     </div>
-    <div class="cio-kanban-wrap">
+    <div style="width:100%;overflow-x:auto;padding:12px 0;">
       <div class="cio-kanban-cols" id="cio-kanban-cols"></div>
     </div>
   </div>
