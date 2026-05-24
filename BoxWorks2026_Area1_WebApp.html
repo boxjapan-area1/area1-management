@@ -570,7 +570,8 @@ function openCIOModal(data){
       <div class="cio-sec-title st-${cls}" style="display:inline-flex;">${CIO_STATUS_ICON[getCIOCat(data.cco)]} ${data.cco||'—'}</div>
     </div>
     ${memoHtml}`;
-  modal.style.display='flex';
+  modal.classList.add('open');
+  modal.style.display='';
 }
 
 function getCIOCat(cco){
