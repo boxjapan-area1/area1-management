@@ -241,9 +241,9 @@ function checkAuth(){
 <script>
 const TODAY='2026/05/05';
 const TODAY_ISO='2026-05-05';
-const SHEETS=['Named CMS Tier1','Named CMS Tier2','Non Named CSM（Ent 13M以上）','Non Named CSM（BusPlus 13M以上）','Non Named CSM（Bus 13M以上）','苦戦顧客【未商談】','苦戦顧客【コンタクト先不明】','さき Target','かわ Target','森木 Target'];
-const TAB_LABEL={'Named CMS Tier1':'Named CMS Tier1','Named CMS Tier2':'Named CMS Tier2','Non Named CSM（Ent 13M以上）':'Non Named Ent','Non Named CSM（BusPlus 13M以上）':'Non Named BusPlus','Non Named CSM（Bus 13M以上）':'Non Named Bus','苦戦顧客【未商談】':'苦戦【未商談】','苦戦顧客【コンタクト先不明】':'苦戦【コンタクト不明】','さき Target':'さき Target','かわ Target':'かわ Target','森木 Target':'森木 Target'};
-const MAIN_SHEETS=new Set(['Named CMS Tier1','Named CMS Tier2','Non Named CSM（Ent 13M以上）','Non Named CSM（BusPlus 13M以上）','Non Named CSM（Bus 13M以上）']);
+const SHEETS=['Named CMS Tier1','Named CMS Tier2','Non Named CSM（Ent 13M以上）','Non Named CSM（BusPlus 13M以上）','Non Named CSM（Bus 13M以上）','Scaled CSM（13M以下）','苦戦顧客【未商談】','苦戦顧客【コンタクト先不明】','さき Target','かわ Target','森木 Target'];
+const TAB_LABEL={'Named CMS Tier1':'Named CMS Tier1','Named CMS Tier2':'Named CMS Tier2','Non Named CSM（Ent 13M以上）':'Com Touch Ent','Non Named CSM（BusPlus 13M以上）':'Com Touch BusPlus','Non Named CSM（Bus 13M以上）':'Com Touch Bus','Scaled CSM（13M以下）':'Scaled CSM','苦戦顧客【未商談】':'苦戦【未商談】','苦戦顧客【コンタクト先不明】':'苦戦【コンタクト不明】','さき Target':'さき Target','かわ Target':'かわ Target','森木 Target':'森木 Target'};
+const MAIN_SHEETS=new Set(['Named CMS Tier1','Named CMS Tier2','Non Named CSM（Ent 13M以上）','Non Named CSM（BusPlus 13M以上）','Non Named CSM（Bus 13M以上）','Scaled CSM（13M以下）']);
 const TARGET_SHEETS=new Set(['さき Target','かわ Target','森木 Target']);
 const ATYPES=['Enterprise Advanced','Enterprise Plus','Enterprise','Business Plus','Business'];
 const INITIAL_DATA={
@@ -20383,7 +20383,6 @@ html+=`<div class="stat"><span>${h(of)} の総件数</span><span class="badge b-
 SHEETS.forEach(s=>{const n=(data[s]||[]).filter(r=>r.owner===of).length;if(n>0)html+=`<div class="stat"><span class="badge" style="background:#f1f5f9;color:#374151">${h(TAB_LABEL[s])}</span><span style="font-size:11px;color:#6b7280">${n}件</span></div>`;});
 if(mgrCnt>0)html+=`<div class="stat"><span>📌 MGRフォロー</span><span class="badge b-amber">${mgrCnt}件</span></div>`;
 } else {
-// 担当者未選択時: 全AEの総件数を一覧表示
 const ownerSet=new Set();SHEETS.forEach(s=>(data[s]||[]).forEach(r=>{if(r.owner)ownerSet.add(r.owner);}));
 const ownerList=[...ownerSet].sort();
 html+=`<div class="stat" style="border-right:1px solid #e5e7eb;padding-right:12px;margin-right:4px"><span style="color:#6b7280;font-size:11px">全AE件数</span></div>`;
@@ -20402,7 +20401,6 @@ const exOk=rows.filter(r=>r.exec&&r.exec!=='未'&&r.exec!=='X').length;
 html+=`<div class="stat"><span>商談あり</span><span class="badge b-green">${dealOk}</span></div>`;
 html+=`<div class="stat"><span>Exec済</span><span class="badge b-green">${exOk}</span></div>`;
 }
-// AE別件数サマリー
 const ownerOrder=[];const ownerCounts={};
 rows.forEach(r=>{const o=r.owner||'(未)';if(!ownerOrder.includes(o))ownerOrder.push(o);ownerCounts[o]=(ownerCounts[o]||0)+1;});
 ownerOrder.sort();
@@ -20472,7 +20470,6 @@ if(of&&r.owner!==of)return false;
 if(!matchDeal(r,sheet))return false;
 return true;
 });
-// AE別グループ化（アルファベット順、同AE内は元順序維持）
 const ownerRank={};let _rank=0;
 [...new Set(filtered.map(r=>r.owner||'').filter(Boolean))].sort().forEach(o=>{ownerRank[o]=_rank++;});
 filtered.sort((a,b)=>(ownerRank[a.owner||'']??999)-(ownerRank[b.owner||'']??999));
@@ -20513,13 +20510,14 @@ if(!rows.length)html+=`<tr><td colspan="10" class="nodata">該当するデータ
 } else {
 const isMain=MAIN_SHEETS.has(sheet);
 const isTarget=TARGET_SHEETS.has(sheet);
-html+=isMain?mainHead():isTarget?targetHead():strugHead();
+const isScaled=sheet==='Scaled CSM（13M以下）';
+html+=isScaled?scaledHead():isMain?mainHead():isTarget?targetHead():strugHead();
 html+='<tbody>';
 let prevO=null;
 rows.forEach(r=>{
 const oChange=r.owner&&r.owner!==prevO;
 if(r.owner)prevO=r.owner;
-html+=isMain?mainRow(r,oChange):isTarget?targetRow(r,oChange):strugRow(r,oChange);
+html+=isScaled?scaledRow(r,oChange):isMain?mainRow(r,oChange):isTarget?targetRow(r,oChange):strugRow(r,oChange);
 });
 if(!rows.length)html+=`<tr><td colspan="13" class="nodata">該当するデータがありません</td></tr>`;
 }
@@ -20613,6 +20611,34 @@ return`<thead><tr>
 <th class="eth">多面接点</th>
 <th class="eth">メモ</th>
 </tr></thead>`;
+}
+function scaledHead(){
+return`<thead><tr>
+<th>取引先 所有者</th><th class="chk-th">📌</th><th>取引先名</th>
+<th class="eth">Account Type</th>
+<th class="eth" style="text-align:right">Total ARR</th>
+<th class="eth">商談名</th>
+<th class="eth">最終活動日</th>
+<th class="eth">OBR依頼</th>
+<th class="eth">Executive</th>
+<th class="eth">CCO</th>
+<th class="eth">担当者</th>
+<th class="eth">多面接点</th>
+<th class="eth">メモ</th>
+</tr></thead>`;
+}
+function scaledRow(r,oc){
+const cls=`${oc?'ostart':''} ${r._c?'crow':''} ${r.mgrFollow?'mgr-row':''}`;
+const acctCls=`atd${r.mgrFollow?' mgr-acct':''}`;
+return`<tr class="${cls}">
+<td class="otd">${oc?h(r.owner):''}</td>
+${mgrCell(r,sheet)}
+<td class="${acctCls}">${h(r.account)}</td>
+${atCell(r)}${arrCell(r)}
+${txCell(r,'upgrade','deal')}${txCell(r,'lastActivity','freedate')}
+${txCell(r,'obrReq','et')}
+${txCell(r,'exec','et')}${txCell(r,'cco','cco')}${txCell(r,'tanto','et')}${txCell(r,'tamen','et')}${txCell(r,'memo','memo')}
+</tr>`;
 }
 function strugHead(){
 return`<thead><tr>
